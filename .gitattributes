@@ -1,0 +1,7 @@
+
+* text=auto
+
+#Adobe
+*.psd       lfs
+*.ai	    lfs
+*.eps       lfs

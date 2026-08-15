@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">NoiseLoop</string>
+    <string name="buy_coffee">Buy Me a Coffee?</string>
+    <string name="text_dialog_watch_ads">This app is independently developed with care. Support my work by watching a quick ad, or unlock the premium version to remove ads forever.</string>
+    <string name="btn_text_watch_ad">Watch a Quick ad (Free)</string>
+    <string name="btn_text_remove_ad">Remove Ads Forever</string>
+    <string name="btn_maybe_later">Maybe Later</string>
+    <string name="btn_text_back">Back</string>
+    <string name="menu_remove_ad">Remove Ads</string>
+    <string name="menu_review">Rate Our App</string>
+    <string name="menu_report_issue">Report Issue</string>
+    <string name="menu_debug">Debug Panel</string>
+    <string name="filter_tag_all">All</string>
+    <string name="filter_tag_favorite">Favorite</string>
+    <string name="msg_download_required">Connect to internet to download this sound</string>
+    <string name="msg_favorite_added">Added to Favorites</string>
+    <string name="msg_favorite_removed">Removed from Favorites</string>
+    <string name="btn_text_timer">Timer</string>
+    <string name="Hour">hour</string>
+    <string name="btn_text_off_timer">Off Timer</string>
+    <string name="msg_premium_activated">Thank you for your support.</string>
+    <string name="msg_error_generic">Something Wrong, Please Contact me</string>
+</resources>

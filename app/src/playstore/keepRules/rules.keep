@@ -1,0 +1,38 @@
+# Add project specific R8 rules here.
+# AGP will combine all keep rule files in src/main/keepRules to pass to R8
+#
+# For more details, see
+#   https://d.android.com/r/tools/r8/keep-rules
+
+# ============================================================================
+# 1. LOCAL DATA & ROOM DATABASE (Wajib untuk Data/Entities kamu)
+# ============================================================================
+-keep class com.nndwn.whitenoise.data.local.entity.** { *; }
+-keep interface com.nndwn.whitenoise.data.local.dao.** { *; }
+
+# ============================================================================
+# 2. KOTLIN SERIALIZATION (Wajib jika menggunakan Custom Annotations)
+# ============================================================================
+-keepattributes *Annotation*,InnerClasses,EnclosingMethod
+-keepclassmembers class * {
+    @kotlinx.serialization.SerialName <fields>;
+}
+-keepclassmembers class * {
+    public static ** Companion;
+    public static ** $serializer;
+}
+
+# ============================================================================
+# 3. ADMOB & JAVASCRIPT INTERFACE (Penting untuk Iklan Web/Reward)
+# ============================================================================
+-keepattributes JavascriptInterface
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
+-keep class com.google.android.gms.ads.identifier.AdvertisingIdClient { public *; }
+-keep class com.google.android.gms.ads.identifier.AdvertisingIdClient$Info { public *; }
+
+# ============================================================================
+# 4. STACKTRACE & CRASH REPORTING
+# ============================================================================
+-keepattributes SourceFile,LineNumberTable

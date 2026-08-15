@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.whitenoise" parent="android:Theme.Material.Light.NoActionBar" >
+        <item name="android:windowBackground">@color/black</item>
+    </style>
+    <style name="Theme.whitenoise.Splash" parent="Theme.SplashScreen">
+        <item name="postSplashScreenTheme">@style/Theme.whitenoise</item>
+        <item name="android:windowBackground">@drawable/splash</item>
+    </style>
+</resources>
