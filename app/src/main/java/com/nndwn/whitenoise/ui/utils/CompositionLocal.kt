@@ -26,6 +26,6 @@ val LocalMenuOptionHandler = staticCompositionLocalOf<(MenuOptions) -> Unit> {
     error("No MenuOptionHandler provided")
 }
 
-val LocalItemTimerHandler = staticCompositionLocalOf<(TimerTime) -> Unit> {
+val LocalItemTimerHandler = staticCompositionLocalOf<()-> Unit>{
     error("No Timer provided")
 }

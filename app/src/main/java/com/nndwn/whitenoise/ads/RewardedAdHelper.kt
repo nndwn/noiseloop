@@ -12,19 +12,17 @@ import com.nndwn.whitenoise.BuildConfig
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
-object RewardedAdHelper{
+class RewardedAdHelper : AdHelper {
     private var rewardedAd : RewardedAd? = null
-    private var isAdLoading =  false
-    private val adUnit = if (BuildConfig.DEBUG){
+    private var isAdLoading = false
+    private val adUnit = if (BuildConfig.DEBUG) {
         "ca-app-pub-3940256099942544/5224354917"
     } else {
-
         BuildConfig.ADS_API_ALT
     }
+    override fun isAdReady(): Boolean = rewardedAd != null
 
-    fun isAdReady(): Boolean = rewardedAd != null
-
-    suspend fun loadAdAwait(context : Context) : Boolean = suspendCancellableCoroutine { continuation ->
+    override suspend fun loadAdAwait(context : Context) : Boolean = suspendCancellableCoroutine { continuation ->
         if (rewardedAd != null) {
             continuation.resume(true)
             return@suspendCancellableCoroutine
@@ -56,7 +54,7 @@ object RewardedAdHelper{
         )
     }
 
-    fun loadAd(context : Context, onAdLoadedCallback : (() -> Unit)? = null) {
+    override fun loadAd(context : Context, onAdLoadedCallback : (() -> Unit)?) {
         if (rewardedAd != null) {
             onAdLoadedCallback?.invoke()
             return
@@ -83,7 +81,7 @@ object RewardedAdHelper{
         )
     }
 
-    fun showAd(
+    override fun showAd(
         activity : Activity,
         onAdClosed : (isRewardEarned : Boolean) -> Unit
     ) {

@@ -53,22 +53,7 @@ class MainViewModel @Inject constructor(
     val sessionTrackDuration = playbackManager.sessionTrackDuration
 
     private val _activeAudioId = MutableStateFlow<String?>(null)
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val activeAudio: StateFlow<DataAudio?> = playbackManager.currentMediaItem
-        .map { mediaItem -> mediaItem?.mediaId }
-        .distinctUntilChanged()
-        .flatMapLatest { id ->
-            if (id == null) {
-                flowOf(null)
-            } else {
-                repository.getAudioFlowById(id)
-            }
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = null
-        )
+    val activeAudio = playbackManager.activeAudio
 
     private val _listAudio = MutableStateFlow<List<DataAudio>?>(null)
     private val _currentFilter = MutableStateFlow<AudioFilter>(AudioFilter.All)
@@ -92,9 +77,6 @@ class MainViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = MainUiState.Loading
     )
-
-    private val _uiEvent = MutableSharedFlow<UiEvent>()
-    val uiEvent = _uiEvent.asSharedFlow()
 
 
     init {
@@ -160,9 +142,7 @@ class MainViewModel @Inject constructor(
         _currentFilter.value = newFilter
     }
 
-    fun setFocusTimer(timerTime: TimerTime) {
-        playbackManager.setFocusTimer(timerTime)
-    }
+
     fun toggleFavorite(audio: DataAudio, isFavorite: Boolean) {
         viewModelScope.launch {
 

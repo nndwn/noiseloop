@@ -21,6 +21,9 @@ data class Dimens(
     val borderSmall: Dp = 0.8.dp,
     val borderMedium: Dp = 1.dp,
     val borderLarge: Dp = 2.dp,
+    val elevationSmall : Dp = 4.dp,
+    val elevationMedium : Dp = 8.dp,
+    val elevationLarge : Dp = 16.dp
 )
 
 val LocalDimens = staticCompositionLocalOf { Dimens() }

@@ -8,34 +8,41 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
+import com.nndwn.whitenoise.data.local.entity.DataAudio
+import com.nndwn.whitenoise.data.repository.AudioRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
 
 @Singleton
 class AudioPlaybackManager @Inject constructor(
-    @param:ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context,
+    private val repository: AudioRepository
 ) {
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying = _isPlaying.asStateFlow()
     private val _sessionTrackDuration = MutableStateFlow(0L)
     val sessionTrackDuration = _sessionTrackDuration.asStateFlow()
-    private val _timerRemainingSeconds = MutableStateFlow<Long?>(null)
-    val timerRemainingSeconds = _timerRemainingSeconds.asStateFlow()
     private val _currentMediaItem = MutableStateFlow<MediaItem?>(null)
     val currentMediaItem = _currentMediaItem.asStateFlow()
     private val _playbackError = MutableSharedFlow<Boolean>()
@@ -48,8 +55,22 @@ class AudioPlaybackManager @Inject constructor(
     private var baseAccumulatedTime = 0L
     private var lastPlayStartTime = 0L
     private var tickerJob: Job? = null
-    private var countdownJob: Job? = null
     private val managerScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val activeAudio: StateFlow<DataAudio?> = _currentMediaItem
+        .map { mediaItem -> mediaItem?.mediaId }
+        .distinctUntilChanged()
+        .flatMapLatest { id ->
+            if (id == null) flowOf(null)
+            else repository.getAudioFlowById(id)
+        }
+        .stateIn(
+            scope = managerScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
+
 
     init {
         initializeController()
@@ -138,40 +159,12 @@ class AudioPlaybackManager @Inject constructor(
         }
     }
 
-    fun setFocusTimer(timerTime : TimerTime){
-        countdownJob?.cancel()
-        if (timerTime == TimerTime.OFF){
-            _timerRemainingSeconds.value = null
-            return
-        }
-        _timerRemainingSeconds.value = when {
-            timerTime.hour < 0 -> {
-                abs(timerTime.hour).toLong()
-            }else -> {
-                timerTime.hour * 3600L
-            }
-        }
-
-        countdownJob = managerScope.launch(Dispatchers.IO){
-            while (isActive && (_timerRemainingSeconds.value ?:0L )> 0L){
-                delay(1000.milliseconds)
-                _timerRemainingSeconds.value = _timerRemainingSeconds.value!! -1
-            }
-            if (_timerRemainingSeconds.value == 0L){
-                withContext(Dispatchers.Main) {
-                    mediaController?.pause()
-                }
-                _timerRemainingSeconds.value = null
-            }
-        }
-    }
     private fun stopTrackingTime() {
         tickerJob?.cancel()
     }
 
     fun release() {
         stopTrackingTime()
-        countdownJob?.cancel()
         mediaControllerFuture?.let { MediaController.releaseFuture(it) }
         mediaController = null
 

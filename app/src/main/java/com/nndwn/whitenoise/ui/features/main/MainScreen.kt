@@ -255,38 +255,6 @@ fun MainScreen(
         }
     }
 
-    AnimatedVisibility(
-        visible = activeAudio != null && currentDestination?.hasRoute<SoundDetailRoute>() == false && !isTablet,
-        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-        modifier = Modifier
-            .align(Alignment.BottomCenter)
-    ) {
-        activeAudio?.let { audio ->
-            MiniPlayBottom(
-                data = audio,
-                timePlaying = sessionTrackDuration,
-                isPlaying = isPlaying,
-                backgroundColor = animatedBackgroundColor,
-                showWarning = noticeMessage != null,
-                warningText = noticeMessage?.let { stringResource(it) } ?: "",
-                onWarningDismiss = { noticeMessage = null },
-                toDetailScreen = {
-                    navController.navigate(SoundDetailRoute(audioId = audio.id))
-                },
-                colorWarnBg = dominantColor.first(),
-                onTogglePlay = {
-                    if (!isPlaying) {
-                        handlePlayRequest { viewModel.togglePlayPause() }
-                    } else {
-                        viewModel.togglePlayPause()
-                    }
-                },
-                modifier = Modifier
-                    .pointerInput(Unit) {}
-                    .navigationBarsPadding()
-            )
-        }
-    }
+
 }
 

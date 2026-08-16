@@ -1,5 +1,7 @@
 package com.nndwn.whitenoise
 
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -31,6 +33,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.text.toInt
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -132,7 +135,12 @@ class MainActivity : ComponentActivity() {
 
     private fun getCurrentVersionCode(): Int {
         return try {
-            val pInfo = packageManager.getPackageInfo(packageName, 0)
+            val pInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0))
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.getPackageInfo(packageName, 0)
+            }
             pInfo.longVersionCode.toInt()
         } catch (_: Exception) {
             0

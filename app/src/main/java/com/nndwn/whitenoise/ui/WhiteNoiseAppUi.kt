@@ -2,8 +2,6 @@ package com.nndwn.whitenoise.ui
 
 import android.app.Activity
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -11,6 +9,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -32,39 +31,41 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.nndwn.whitenoise.R
 import com.nndwn.whitenoise.ads.RewardedAdHelper
 import com.nndwn.whitenoise.ui.components.ListTimer
 import com.nndwn.whitenoise.ui.components.MainLayout
+import com.nndwn.whitenoise.ui.components.MainLayoutState
 import com.nndwn.whitenoise.ui.components.MenuOptions
 import com.nndwn.whitenoise.ui.components.Scrim
 import com.nndwn.whitenoise.ui.components.WatchAdsPanel
 import com.nndwn.whitenoise.ui.components.WaveVisAnim
-import com.nndwn.whitenoise.ui.features.main.UiEvent
 import com.nndwn.whitenoise.ui.features.main.components.DialogNotice
 import com.nndwn.whitenoise.ui.features.main.components.MiniPlayBottom
 import com.nndwn.whitenoise.ui.navigation.AppRoute
 import com.nndwn.whitenoise.ui.navigation.WhiteNoiseNavHost
 import com.nndwn.whitenoise.ui.utils.LocalIsPremium
+import com.nndwn.whitenoise.ui.utils.LocalItemTimerHandler
+import com.nndwn.whitenoise.ui.utils.LocalMenuOptionHandler
+import com.nndwn.whitenoise.ui.utils.LocalSizeWidth
+import com.nndwn.whitenoise.ui.utils.LocalToggleSidebar
 import com.nndwn.whitenoise.ui.utils.gotoMail
 import com.nndwn.whitenoise.ui.utils.gotoPlayStore
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
-import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun WhiteNoiseAppUi (
     navController: NavHostController = rememberNavController(),
-    appViewModel: AppViewModel = hiltViewModel()
+    appViewModel: AppViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
     val scope = rememberCoroutineScope()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val windowSizeWidth = LocalSizeWidth.current
+
 
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = currentBackStackEntry?.destination
@@ -78,6 +79,9 @@ fun WhiteNoiseAppUi (
 
     val showAds by appViewModel.isAdsEnabled.collectAsStateWithLifecycle()
     val isPremium by appViewModel.isPremium.collectAsStateWithLifecycle()
+    val activeAudio by appViewModel.isActiveAudio.collectAsStateWithLifecycle()
+    val sessionTrackDuration by appViewModel.sessionTrackDuration.collectAsStateWithLifecycle()
+    val isPlaying by appViewModel.isPlaying.collectAsStateWithLifecycle()
 
     var pendingAudioAction by remember { mutableStateOf<(() -> Unit)?>(null) }
 
@@ -89,10 +93,9 @@ fun WhiteNoiseAppUi (
             MenuOptions.REMOVE_ADS -> if (!isPremium) showAdsDialog = true
             MenuOptions.RATE_APP -> gotoPlayStore(context)
             MenuOptions.REPORT_ISSUE -> gotoMail(context)
-            MenuOptions.TIMER -> {}
+            MenuOptions.TIMER -> overlayTimer = true
         }
     }
-
 
     LaunchedEffect(appViewModel.uiEffect, lifecycle) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -119,21 +122,63 @@ fun WhiteNoiseAppUi (
 
 
     CompositionLocalProvider(
-        LocalIsPremium provides (isPremium)
+        LocalIsPremium provides (isPremium),
+        LocalToggleSidebar provides {isSidebarOpen = !isSidebarOpen},
+        LocalMenuOptionHandler provides handleMenuOption,
+        LocalItemTimerHandler provides {overlayTimer = !overlayTimer}
     ) {
         MainLayout(
-            isSidebarOpen = isSidebarOpen,
+            state = MainLayoutState().copy(
+                isOpen = isSidebarOpen
+            ),
             onCloseSidebar = { isSidebarOpen = false },
-            sideBarRight = {
+            sideBarEnd = {
                 MenuOptions(
                     onMenuSelected = handleMenuOption
                 )
+            },
+            bottomBarContent = {
+                AnimatedVisibility(
+                    visible = activeAudio != null &&
+                            currentDestination?.hasRoute<AppRoute.SoundDetail>() == false &&
+                            windowSizeWidth == WindowWidthSizeClass.Compact,
+                    enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                    exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                ) {
+                    activeAudio?.let { audio ->
+                        MiniPlayBottom(
+                            data = audio,
+                            timePlaying = sessionTrackDuration,
+                            isPlaying = isPlaying,
+                            containerColor = animatedBackgroundColor,
+                            showWarning = noticeMessage != null,
+                            warningText = noticeMessage?.let { stringResource(it) } ?: "",
+                            onWarningDismiss = { noticeMessage = null },
+                            navigate = {
+                                navController.navigate(SoundDetailRoute(audioId = audio.id))
+                            },
+                            colorWarnBg = dominantColor.first(),
+                            onTogglePlay = {
+                                if (!isPlaying) {
+                                    handlePlayRequest { viewModel.togglePlayPause() }
+                                } else {
+                                    viewModel.togglePlayPause()
+                                }
+                            },
+                            modifier = Modifier
+                                .pointerInput(Unit) {}
+                                .navigationBarsPadding()
+                        )
+                    }
+                }
             },
             overlayContent = {
                 ListTimer(
                     show = overlayTimer,
                     onDismiss = { overlayTimer = false },
-                    onClick = { viewModel.setFocusTimer(it) }
+                    onClick = {  appViewModel.setFocusTimer(it) }
                 )
                 WatchAdsPanel(
                     showPanel = showAdsDialog,

@@ -25,7 +25,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.nndwn.whitenoise.data.local.InitialAudioData
@@ -111,7 +110,7 @@ private fun InteractivePreviewWrapper(isTablet: Boolean) {
         MainLayout(
             isSidebarOpen = isSidebarOpen,
             onCloseSidebar = { isSidebarOpen = false },
-            sideBarRight = {
+            sideBarEnd = {
                 MenuOptions { menu ->
                     when (menu) {
                         MenuOptions.DEBUG -> {
@@ -183,11 +182,11 @@ private fun InteractivePreviewWrapper(isTablet: Boolean) {
                             data = audio,
                             timePlaying = sessionTrackDuration,
                             isPlaying = isPlaying,
-                            backgroundColor = animatedBackgroundColor,
+                            containerColor = animatedBackgroundColor,
                             showWarning = noticeMessage != null,
                             warningText = noticeMessage?.let { stringResource(it) } ?: "",
                             onWarningDismiss = { noticeMessage = null },
-                            toDetailScreen = {
+                            navigate = {
                                 navController.navigate(SoundDetailRoute(audioId = audio.id))
                             },
                             colorWarnBg = dominantColorResult.firstOrNull() ?: Color.Gray,

@@ -15,23 +15,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import com.nndwn.whitenoise.ui.utils.LocalIsPremium
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.nndwn.whitenoise.BuildConfig
 import com.nndwn.whitenoise.R
-import com.nndwn.whitenoise.ui.theme.Dimens
-import com.nndwn.whitenoise.ui.theme.Palette
-import com.nndwn.whitenoise.ui.theme.PlusJakartaFontFamily
+import com.nndwn.whitenoise.ui.theme.dimens
+import com.nndwn.whitenoise.ui.utils.LocalIsPremium
 
 enum class MenuOptions(
     @param:StringRes val label : Int,
@@ -39,7 +36,7 @@ enum class MenuOptions(
 ) {
     REMOVE_ADS(
         label = R.string.menu_remove_ad,
-        iconRes = R.drawable.ic_crown
+        iconRes = R.drawable.ic_coffee
     ),
     TIMER(
         label = R.string.btn_text_timer,
@@ -70,7 +67,7 @@ fun MenuOptions(
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Spacer(modifier = Modifier.height(10.dp))
-
+        //todo : add condition flavor
         MenuOptions.entries
             .filter { 
                 when (it) {
@@ -93,45 +90,32 @@ fun MenuOptions(
 
 @Composable
 private fun ItemOptions(
+    modifier : Modifier = Modifier,
     menu : MenuOptions,
     onClick : () -> Unit = {}
 ){
     Row (
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .height(45.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = androidx.compose.material3.ripple(),
+                indication = ripple(),
                 onClick = onClick
             )
-            .padding(horizontal = Dimens.PaddingHorizontal)
+            .padding(vertical = MaterialTheme.dimens.small, horizontal = MaterialTheme.dimens.medium)
         ,
        verticalAlignment = Alignment.CenterVertically
     ){
         Icon(
             painter = painterResource(menu.iconRes),
             contentDescription = "icon ${stringResource(menu.label)}",
-            tint = Palette.White,
-            modifier = Modifier.size(26.dp)
+            modifier = Modifier.size(MaterialTheme.dimens.iconMedium)
         )
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(MaterialTheme.dimens.medium))
         Text(
-            fontFamily = PlusJakartaFontFamily,
-            text = stringResource(menu.label) ,
-            color = Palette.White,
-            fontWeight = FontWeight.Medium,
-            fontSize = 16.sp
+            text = stringResource(menu.label),
+            style = MaterialTheme.typography.titleMedium
         )
-
-    }
-
-}
-
-@Preview
-@Composable
-private fun Preview(){
-    MenuOptions { menu ->
 
     }
 }

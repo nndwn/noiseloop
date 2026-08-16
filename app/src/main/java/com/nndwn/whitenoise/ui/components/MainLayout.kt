@@ -6,52 +6,65 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.Snackbar
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.nndwn.whitenoise.ui.theme.Palette
 
-
+data class MainLayoutState (
+    val isOpen : Boolean = false,
+    val sidebarWidth : Dp = 240.dp,
+    val backgroundColor : Color = Color.Unspecified,
+    val sidebarBackgroundColor : Color = Color.Unspecified
+)
 @Composable
 fun MainLayout(
-    isSidebarOpen: Boolean = false,
+    state : MainLayoutState = MainLayoutState(),
     onCloseSidebar : () -> Unit = {},
     topBarContent : @Composable  () -> Unit = {},
-    sideBarRight : @Composable () -> Unit = {},
+    sideBarEnd : @Composable () -> Unit = {},
     bottomBarContent : @Composable BoxScope.()-> Unit = {},
     overlayContent : @Composable BoxScope.() -> Unit = {},
-    snackBar : @Composable () -> Unit = {},
     content : @Composable BoxScope.(padding : PaddingValues) -> Unit
 ){
-    val sidebarWidth = 240.dp
+    val backgroundColor = if (state.backgroundColor != Color.Unspecified) {
+        state.backgroundColor
+    } else {
+        MaterialTheme.colorScheme.background
+    }
+
+    val sideBackgroundColor = if (state.sidebarBackgroundColor != Color.Unspecified) {
+        state.sidebarBackgroundColor
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+
     val contentTranslationX by animateDpAsState(
-        targetValue = if (isSidebarOpen) -sidebarWidth else 0.dp,
+        targetValue = if (state.isOpen) -state.sidebarWidth else 0.dp,
         animationSpec = tween(durationMillis = 300),
         label = "ContentSlide"
     )
     val sidebarTranslationX by animateDpAsState(
-        targetValue = if (isSidebarOpen) 0.dp else sidebarWidth,
+        targetValue = if (state.isOpen) 0.dp else state.sidebarWidth,
         animationSpec = tween(durationMillis = 300),
         label = "SidebarSlide"
     )
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Palette.Black2)
+            .background(backgroundColor)
     ){
         Box(
             modifier = Modifier
@@ -66,37 +79,27 @@ fun MainLayout(
                 bottomBar = {
                     bottomBarContent()
                 },
-                contentWindowInsets = if (android.os.Build.VERSION.SDK_INT >= 35) {
-                    ScaffoldDefaults.contentWindowInsets
-                } else {
-                    WindowInsets(0, 0, 0, 0)
-                }
             ) { innerPadding ->
-                Box(modifier = Modifier.fillMaxSize()) {
-                    content(innerPadding)
-                }
+                content(innerPadding)
             }
             Scrim(
-                active = isSidebarOpen,
+                active = state.isOpen,
                 onDismiss = onCloseSidebar
             )
         }
-        Box(
+        Surface(
+            color = sideBackgroundColor,
             modifier = Modifier
                 .fillMaxHeight()
-                .width(sidebarWidth)
+                .width(state.sidebarWidth)
                 .align(Alignment.TopEnd)
-                .graphicsLayer { translationX = sidebarTranslationX.toPx() }
-                .shadow(elevation = 12.dp)
-                .background(Palette.Black2)
+                .graphicsLayer{translationX = sidebarTranslationX.toPx()}
                 .statusBarsPadding()
-        ){
-            sideBarRight()
+        ) {
+            sideBarEnd()
         }
-
         Box(
-            modifier = Modifier
-                .fillMaxSize()
+            modifier = Modifier.fillMaxSize()
         ) {
             overlayContent()
         }
