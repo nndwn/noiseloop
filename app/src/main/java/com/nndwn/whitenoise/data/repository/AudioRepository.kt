@@ -40,13 +40,13 @@ class AudioRepository @Inject constructor(
         if (userAudio == null) return repoAudio
 
         val (finalSourcePath, finalLabel) = resolveSourcePath(repoAudio, userAudio)
-        val hasCoverChanged = repoAudio.cover != userAudio.cover
+        val isColorGenerated = (repoAudio.cover == userAudio.cover) && userAudio.isColor
 
         return repoAudio.copy(
             isFavorite = userAudio.isFavorite,
             sourcePath = finalSourcePath,
             label = finalLabel,
-            isColor = hasCoverChanged,
+            isColor = isColorGenerated,
             colorPrimary = userAudio.colorPrimary,
             colorSecondary = userAudio.colorSecondary
         )

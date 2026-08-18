@@ -16,7 +16,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.nndwn.whitenoise.MainActivity
 import com.nndwn.whitenoise.data.repository.PreferenceRepository
 import com.nndwn.whitenoise.data.extensions.asMediaItem
-import com.nndwn.whitenoise.data.local.dao.AudioDao
+import com.nndwn.whitenoise.data.repository.AudioRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,48 +32,42 @@ class AudioPlaybackService : MediaSessionService() {
     @Inject
     lateinit var preferenceRepository: PreferenceRepository
 
-
+    @Inject
+    lateinit var audioRepository : AudioRepository
 
     private var startTime: Long = 0L
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var mediaSession: MediaSession? = null
-
     private var playerListener: Player.Listener? = null
 
     companion object {
         var sessionStartTime: Long = 0L
             private set
     }
-    private fun saveDurationTrack(){
-        if (startTime == 0L) return
-        val sessionDuration = System.currentTimeMillis() - startTime
-        startTime = 0L
 
-        if (sessionDuration > 0) {
-            serviceScope.launch {
-                preferenceRepository.addDuration(sessionDuration)
-            }
-        }
+    private fun saveDurationTrack() {
+        if (startTime == 0L) return
+        startTime = 0L
     }
 
     @OptIn(UnstableApi::class)
     override fun onCreate() {
         super.onCreate()
 
-        val intent = Intent(this, MainActivity::class.java).apply {
-            putExtra("OPEN_NOW_PLAYING", true)
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
+        val player = initializePlayer()
+        val pendingIntent = createSessionActivityIntent()
+        val sessionCallback = createMediaSessionCallback(player)
 
+        mediaSession = MediaSession.Builder(this, player)
+            .setSessionActivity(pendingIntent)
+            .setCallback(sessionCallback)
+            .build()
 
+        setupPlayerListener(player)
+    }
 
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val player = ExoPlayer.Builder(this)
+    private fun initializePlayer(): ExoPlayer {
+        return ExoPlayer.Builder(this)
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
@@ -81,14 +75,34 @@ class AudioPlaybackService : MediaSessionService() {
                     .build(),
                 true
             )
-            .build()
+            .build().apply {
+                repeatMode = Player.REPEAT_MODE_ONE
+            }
+    }
 
-        val sessionCallback = object : MediaSession.Callback {
+    private fun createSessionActivityIntent(): PendingIntent {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            putExtra("OPEN_NOW_PLAYING", true)
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+
+        return PendingIntent.getActivity(
+            this,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    @OptIn(UnstableApi::class)
+    private fun createMediaSessionCallback(player: Player): MediaSession.Callback {
+        return object : MediaSession.Callback {
+
             override fun onConnect(
                 session: MediaSession,
                 controller: MediaSession.ControllerInfo
             ): MediaSession.ConnectionResult {
-                return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
+                return MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller)
                     .build()
             }
 
@@ -97,7 +111,6 @@ class AudioPlaybackService : MediaSessionService() {
                 controller: MediaSession.ControllerInfo,
                 isForPlayback: Boolean
             ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
-
                 val currentMediaItem = player.currentMediaItem
                 if (currentMediaItem != null) {
                     return Futures.immediateFuture(
@@ -109,36 +122,37 @@ class AudioPlaybackService : MediaSessionService() {
                     )
                 }
 
-                return CallbackToFutureAdapter.getFuture { completer ->
-                    serviceScope.launch {
-                        try {
-                            val lastId = preferenceRepository.lastAudioId.first()
-                            val audio = if (!lastId.isNullOrEmpty()) audioDao.getAudioById(lastId) else null
-
-                            val result = if (audio != null) {
-                                val mediaItem = audio.asMediaItem(this@AudioPlaybackService)
-                                MediaSession.MediaItemsWithStartPosition(listOf(mediaItem), 0, 0)
-                            } else {
-                                MediaSession.MediaItemsWithStartPosition(emptyList(), 0, 0)
-                            }
-
-                            completer.set(result)
-                        } catch (e: Exception) {
-                            completer.setException(e)
-                        }
-                    }
-
-                    "AudioPlaybackResumptionTask"
-                }
+                return handleResumptionFromPrefs()
             }
         }
+    }
 
-        mediaSession = MediaSession.Builder(this, player)
-            .setSessionActivity(pendingIntent)
-            .setCallback(sessionCallback)
-            .build()
-        player.repeatMode = Player.REPEAT_MODE_ONE
+    @OptIn(UnstableApi::class)
+    private fun handleResumptionFromPrefs(): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+        return CallbackToFutureAdapter.getFuture { completer ->
+            serviceScope.launch {
+                try {
+                    val lastId = preferenceRepository.lastAudioId.first()
+                    val audio = if (!lastId.isNullOrEmpty()) audioRepository.getAudioData(lastId) else null
 
+                    val result = if (audio != null) {
+                        val mediaItem = audio.asMediaItem(this@AudioPlaybackService)
+                        MediaSession.MediaItemsWithStartPosition(listOf(mediaItem), 0, 0)
+                    } else {
+                        MediaSession.MediaItemsWithStartPosition(emptyList(), 0, 0)
+                    }
+
+                    completer.set(result)
+                } catch (e: Exception) {
+                    completer.setException(e)
+                }
+            }
+
+            "AudioPlaybackResumptionTask"
+        }
+    }
+
+    private fun setupPlayerListener(player: Player) {
         playerListener = object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 if (isPlaying) {
@@ -154,7 +168,8 @@ class AudioPlaybackService : MediaSessionService() {
         }
         playerListener?.let { player.addListener(it) }
     }
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) : MediaSession? {
+
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
         return mediaSession
     }
 
@@ -172,5 +187,4 @@ class AudioPlaybackService : MediaSessionService() {
 
         super.onDestroy()
     }
-
 }

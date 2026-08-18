@@ -1,6 +1,8 @@
 package com.nndwn.whitenoise.ui.features.main.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -22,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,26 +35,34 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.nndwn.whitenoise.data.local.entity.DataAudio
 import com.nndwn.whitenoise.ui.components.DurationSessionText
 import com.nndwn.whitenoise.ui.components.RunningText
 import com.nndwn.whitenoise.ui.components.TogglePlay
 import com.nndwn.whitenoise.ui.theme.dimens
 
+
+data class MiniPlayState(
+    val audio : DataAudio,
+    val timePlaying: Long,
+    val isPlaying : Boolean,
+    val message : String,
+    val colorBackgroundMessage: Color,
+    val containerColor: Color,
+)
 @Composable
 fun MiniPlayBottom(
-    data : DataAudio,
-    timePlaying : Long,
-    isPlaying: Boolean,
-    showWarning : Boolean,
-    message : String,
-    colorBackgroundMessage : Color,
-    containerColor: Color,
+    state: MiniPlayState,
     modifier: Modifier = Modifier,
     onTogglePlay: () -> Unit,
     navigate : () -> Unit,
 ){
+
+    val animatedEffectChangeColor by animateColorAsState(
+        targetValue = state.containerColor,
+        animationSpec = tween(durationMillis = 500),
+        label = "MiniPlayColorTransition"
+    )
 
     Column(
         modifier = modifier
@@ -61,15 +72,15 @@ fun MiniPlayBottom(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Notice(
-            text = message,
-            containerColor = colorBackgroundMessage
+            text = state.message,
+            containerColor = state.colorBackgroundMessage
         )
 
         Row( modifier = Modifier
             .fillMaxWidth()
             .shadow(
                 elevation = MaterialTheme.dimens.elevationMedium,
-                shape = if (showWarning){
+                shape = if (state.message.isNotEmpty()){
                     MaterialTheme.shapes.small.copy(
                         topStart = CornerSize(0.dp),
                         topEnd = CornerSize(0.dp)
@@ -77,7 +88,7 @@ fun MiniPlayBottom(
                 }else {
                     MaterialTheme.shapes.small
                 })
-            .background(containerColor)
+            .background(animatedEffectChangeColor)
             .clip(MaterialTheme.shapes.small)
             .padding(MaterialTheme.dimens.medium),
             verticalAlignment = Alignment.CenterVertically,
@@ -103,8 +114,8 @@ fun MiniPlayBottom(
                        .background(MaterialTheme.colorScheme.onBackground)
                ) {
                    Image(
-                       painter = painterResource(data.cover),
-                       contentDescription = "mini play cover ${data.name}",
+                       painter = painterResource(state.audio.cover),
+                       contentDescription = "mini play cover ${state.audio.name}",
                        modifier = Modifier.fillMaxSize(),
                        contentScale = ContentScale.Crop
                    )
@@ -114,21 +125,20 @@ fun MiniPlayBottom(
                    verticalArrangement = Arrangement.Center
                ) {
                    RunningText(
-                       title = data.name,
-                       subtitle = data.type.name,
-                       fontSize = 17.sp
+                       title = state.audio.name,
+                       subtitle = state.audio.type.name,
+                       style = MaterialTheme.typography.titleMedium,
                    )
                    DurationSessionText(
-                       isVisible = timePlaying > 0L,
-                       timePlaying = timePlaying,
+                       timePlaying = state.timePlaying,
                    )
                }
             }
 
             TogglePlay(
-                sizeIcon = 48.dp,
-                paddingIcon = 8.dp,
-                isPlaying = isPlaying,
+                sizeIcon = MaterialTheme.dimens.iconExtraLarge,
+                paddingIcon = MaterialTheme.dimens.small,
+                isPlaying = state.isPlaying,
                 onTogglePlay = onTogglePlay
             )
         }

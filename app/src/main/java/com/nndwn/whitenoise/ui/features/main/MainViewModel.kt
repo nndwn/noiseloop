@@ -7,6 +7,7 @@ import androidx.compose.runtime.snapshots.toInt
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.palette.graphics.Palette
+import com.nndwn.whitenoise.IoDispatcher
 import com.nndwn.whitenoise.R
 import com.nndwn.whitenoise.ads.BillingManager
 import com.nndwn.whitenoise.data.repository.PreferenceRepository
@@ -16,6 +17,8 @@ import com.nndwn.whitenoise.data.extensions.asMediaItem
 import com.nndwn.whitenoise.data.repository.AudioRepository
 import com.nndwn.whitenoise.service.AudioPlaybackManager
 import com.nndwn.whitenoise.service.TimerTime
+import com.nndwn.whitenoise.ui.UiController
+import com.nndwn.whitenoise.ui.UiEffect
 import com.nndwn.whitenoise.ui.theme.CharcoalDarkGray
 import com.nndwn.whitenoise.ui.theme.MediumDarkGray
 import com.nndwn.whitenoise.ui.theme.toArgbLong
@@ -47,7 +50,8 @@ class MainViewModel @Inject constructor(
     private val playbackManager: AudioPlaybackManager,
     private val preferenceRepository: PreferenceRepository,
     private val billingManager: BillingManager,
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+    private val controller: UiController,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel(){
     val isPlaying = playbackManager.isPlaying
     val sessionTrackDuration = playbackManager.sessionTrackDuration
@@ -81,58 +85,10 @@ class MainViewModel @Inject constructor(
 
     init {
         loadLastPlayedAudio()
-        observeBillingEvents()
-        observePlaybackErrors()
-        observeActiveAudioForColors()
-    }
-
-    private fun observeActiveAudioForColors() {
-        viewModelScope.launch {
-            activeAudio.collectLatest { audio ->
-                if (audio != null && !audio.isColor) {
-                    updateDominantColor(audio)
-                }
-            }
-        }
-    }
-
-    private fun updateDominantColor(audio: DataAudio) {
-        viewModelScope.launch(ioDispatcher) {
-            val options = BitmapFactory.Options().apply { inSampleSize = 4 }
-            val bitmap = BitmapFactory.decodeResource(context.resources, audio.cover, options)
-
-            if (bitmap != null) {
-                val palette = Palette.from(bitmap).generate()
-                val color1 = palette.vibrantSwatch?.rgb ?: palette.dominantSwatch?.rgb ?: audio.colorPrimary.toInt()
-                val color2 = palette.darkVibrantSwatch?.rgb ?: palette.mutedSwatch?.rgb ?: audio.colorSecondary.toInt()
-
-                repository.updateAudioColors(
-                    audio.id,
-                    color1.toLong() and 0xFFFFFFFFL,
-                    color2.toLong() and 0xFFFFFFFFL
-                )
-            }
-        }
+        playbackError()
     }
 
 
-    private fun observePlaybackErrors() {
-        viewModelScope.launch {
-            playbackManager.playbackError.collectLatest { error ->
-                if (error) {
-                    _uiEvent.emit(UiEvent.ShowErrorNotice(R.string.msg_error_generic))
-                }
-            }
-        }
-    }
-
-    private fun observeBillingEvents() {
-        viewModelScope.launch {
-            billingManager.billingEvent.collectLatest { messageRes ->
-                _uiEvent.emit(UiEvent.ShowAdsNotice(messageRes))
-            }
-        }
-    }
 
     fun buyRemoveAds(activity: Activity) {
         billingManager.launchBillingFlow(activity)
@@ -198,6 +154,16 @@ class MainViewModel @Inject constructor(
             val lastAudioId = preferenceRepository.lastAudioId.first()
             if (!lastAudioId.isNullOrEmpty()) {
                 _activeAudioId.value = lastAudioId
+            }
+        }
+    }
+
+    private fun playbackError(){
+        viewModelScope.launch {
+            playbackManager.playbackError.collectLatest { error ->
+                if (error) {
+                    controller.sendEffect(UiEffect.ShowToast(R.string.msg_error_generic))
+                }
             }
         }
     }

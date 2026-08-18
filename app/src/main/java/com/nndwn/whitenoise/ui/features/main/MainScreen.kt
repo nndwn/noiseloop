@@ -87,11 +87,7 @@ fun MainScreen(
 
     val isTablet = LocalIsTablet.current
 
-    val animatedBackgroundColor by animateColorAsState(
-        targetValue = dominantColor.last(),
-        animationSpec = tween(durationMillis = 500),
-        label = "GlobalColorTransition"
-    )
+
 
     Row(
         modifier = modifier.fillMaxSize()

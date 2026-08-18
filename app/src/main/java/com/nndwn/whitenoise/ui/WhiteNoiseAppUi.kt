@@ -45,8 +45,10 @@ import com.nndwn.whitenoise.ui.components.WatchAdsPanel
 import com.nndwn.whitenoise.ui.components.WaveVisAnim
 import com.nndwn.whitenoise.ui.features.main.components.DialogNotice
 import com.nndwn.whitenoise.ui.features.main.components.MiniPlayBottom
+import com.nndwn.whitenoise.ui.features.main.components.MiniPlayState
 import com.nndwn.whitenoise.ui.navigation.AppRoute
 import com.nndwn.whitenoise.ui.navigation.WhiteNoiseNavHost
+import com.nndwn.whitenoise.ui.theme.toComposeColor
 import com.nndwn.whitenoise.ui.utils.LocalIsPremium
 import com.nndwn.whitenoise.ui.utils.LocalItemTimerHandler
 import com.nndwn.whitenoise.ui.utils.LocalMenuOptionHandler
@@ -59,10 +61,10 @@ import com.nndwn.whitenoise.ui.utils.gotoPlayStore
 fun WhiteNoiseAppUi (
     navController: NavHostController = rememberNavController(),
     appViewModel: AppViewModel = hiltViewModel(),
+
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
-    val scope = rememberCoroutineScope()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val windowSizeWidth = LocalSizeWidth.current
 
@@ -149,17 +151,17 @@ fun WhiteNoiseAppUi (
                 ) {
                     activeAudio?.let { audio ->
                         MiniPlayBottom(
-                            data = audio,
-                            timePlaying = sessionTrackDuration,
-                            isPlaying = isPlaying,
-                            containerColor = animatedBackgroundColor,
-                            showWarning = noticeMessage != null,
-                            warningText = noticeMessage?.let { stringResource(it) } ?: "",
-                            onWarningDismiss = { noticeMessage = null },
+                            state = MiniPlayState(
+                                audio = audio,
+                                timePlaying = sessionTrackDuration,
+                                isPlaying = isPlaying,
+                                message = noticeMessage?.let { stringResource(it) } ?: "",
+                                colorBackgroundMessage =  audio.colorPrimary.toComposeColor(),
+                                containerColor = audio.colorSecondary.toComposeColor()
+                            ),
                             navigate = {
-                                navController.navigate(SoundDetailRoute(audioId = audio.id))
+                                navController.navigate(AppRoute.SoundDetail)
                             },
-                            colorWarnBg = dominantColor.first(),
                             onTogglePlay = {
                                 if (!isPlaying) {
                                     handlePlayRequest { viewModel.togglePlayPause() }

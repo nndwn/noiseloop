@@ -8,9 +8,12 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
+import com.nndwn.whitenoise.IoDispatcher
+import com.nndwn.whitenoise.MainDispatcher
 import com.nndwn.whitenoise.data.local.entity.DataAudio
 import com.nndwn.whitenoise.data.repository.AudioRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -37,7 +40,8 @@ import kotlin.time.Duration.Companion.milliseconds
 @Singleton
 class AudioPlaybackManager @Inject constructor(
     @param:ApplicationContext private val context: Context,
-    private val repository: AudioRepository
+    private val repository: AudioRepository,
+    @MainDispatcher private val mainDispatcher: CoroutineDispatcher
 ) {
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying = _isPlaying.asStateFlow()
@@ -55,7 +59,7 @@ class AudioPlaybackManager @Inject constructor(
     private var baseAccumulatedTime = 0L
     private var lastPlayStartTime = 0L
     private var tickerJob: Job? = null
-    private val managerScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val managerScope = CoroutineScope(SupervisorJob() + mainDispatcher)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val activeAudio: StateFlow<DataAudio?> = _currentMediaItem
@@ -119,6 +123,7 @@ class AudioPlaybackManager @Inject constructor(
             })
         }, ContextCompat.getMainExecutor(context))
     }
+
 
     fun play(mediaItem: MediaItem) {
         stopTrackingTime()
