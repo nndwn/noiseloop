@@ -1,6 +1,8 @@
 package com.nndwn.whitenoise.ui.features.main.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -14,36 +16,42 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nndwn.whitenoise.ui.theme.Dimens
-import com.nndwn.whitenoise.ui.theme.Palette
-import com.nndwn.whitenoise.ui.theme.PlusJakartaFontFamily
-import com.nndwn.whitenoise.ui.utils.LocalIsTablet
+import com.nndwn.whitenoise.ui.theme.dimens
+import com.nndwn.whitenoise.ui.utils.LocalSizeWidth
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun DialogNotice(
+    modifier: Modifier = Modifier,
     visible: Boolean,
     text: String,
-    modifier: Modifier = Modifier,
+    containerColor: Color = Color.Unspecified,
     onDismiss: () -> Unit = {}
 ) {
-    val isTablet = LocalIsTablet.current
-
+    val isExpand = LocalSizeWidth.current != WindowWidthSizeClass.Compact
+    val backgroundColor = containerColor.takeOrElse { MaterialTheme.colorScheme.surface }
 
     LaunchedEffect(visible, text) {
         if (visible) {
@@ -52,8 +60,26 @@ fun DialogNotice(
         }
     }
 
-    val enterAnimation = remember(isTablet) {
-        if (isTablet) {
+    val (enterAnim, exitAnim) = rememberDialogNoticeTransitions(isExpand)
+
+    AnimatedVisibility(
+        visible = visible,
+        enter = enterAnim,
+        exit = exitAnim,
+    ) {
+        DialogNoticeContent(
+            modifier = modifier,
+            isExpand = isExpand,
+            backgroundColor = backgroundColor,
+            text = text
+        )
+    }
+}
+
+@Composable
+private fun rememberDialogNoticeTransitions(isExpand: Boolean): Pair<EnterTransition, ExitTransition> {
+    return remember(isExpand) {
+        val enter = if (isExpand) {
             slideInHorizontally(
                 initialOffsetX = { it },
                 animationSpec = spring(
@@ -70,10 +96,8 @@ fun DialogNotice(
                 )
             ) + fadeIn(animationSpec = tween(200))
         }
-    }
 
-    val exitAnimation = remember(isTablet) {
-        if (isTablet) {
+        val exit = if (isExpand) {
             slideOutHorizontally(
                 targetOffsetX = { it },
                 animationSpec = tween(200)
@@ -84,41 +108,52 @@ fun DialogNotice(
                 animationSpec = tween(150)
             ) + fadeOut(animationSpec = tween(150))
         }
+        enter to exit
     }
+}
 
-    AnimatedVisibility(
-        visible = visible,
-        enter = enterAnimation,
-        exit = exitAnimation,
+@Composable
+private fun DialogNoticeContent(
+    modifier: Modifier,
+    isExpand: Boolean,
+    backgroundColor: Color,
+    text: String
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(
+                horizontal = MaterialTheme.dimens.medium,
+                vertical = MaterialTheme.dimens.large
+            )
+            .navigationBarsPadding(),
+        contentAlignment = if (isExpand) Alignment.BottomEnd else Alignment.BottomCenter
     ) {
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(horizontal = Dimens.PaddingHorizontal, vertical = 20.dp),
-            contentAlignment = if (isTablet) Alignment.BottomEnd else Alignment.BottomCenter
+        Surface(
+            color = backgroundColor,
+            shape = MaterialTheme.shapes.large,
         ) {
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(color = Palette.White)
-                    .padding(vertical = 8.dp, horizontal = 20.dp)
+                    .padding(
+                        vertical = MaterialTheme.dimens.small,
+                        horizontal = MaterialTheme.dimens.large
+                    )
                     .then(
-                        if (isTablet) Modifier.widthIn(max = 560.dp)
+                        if (isExpand) Modifier.widthIn(max = 560.dp)
                         else Modifier.fillMaxWidth()
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = text,
-                    fontFamily = PlusJakartaFontFamily,
-                    fontWeight = FontWeight.Medium,
-                    color = Palette.Black2,
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
         }
     }
 }
+
 
 @Preview
 @Composable

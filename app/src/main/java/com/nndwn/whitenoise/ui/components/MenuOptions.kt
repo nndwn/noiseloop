@@ -36,7 +36,7 @@ enum class MenuOptions(
 ) {
     REMOVE_ADS(
         label = R.string.menu_remove_ad,
-        iconRes = R.drawable.ic_coffee
+        iconRes = R.drawable.ic_coffee2
     ),
     TIMER(
         label = R.string.btn_text_timer,

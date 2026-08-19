@@ -16,7 +16,7 @@ import androidx.compose.ui.graphics.Color
 @Composable
 fun Scrim (
     active : Boolean,
-    onDismiss : () -> Unit
+    onDismiss : () -> Unit = {}
 ) {
     AnimatedVisibility(
         visible = active,

@@ -1,6 +1,7 @@
 package com.nndwn.whitenoise.ui
 
 import android.app.Activity
+import android.view.Window
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -16,7 +17,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,7 +41,10 @@ import com.nndwn.whitenoise.ui.components.MainLayout
 import com.nndwn.whitenoise.ui.components.MainLayoutState
 import com.nndwn.whitenoise.ui.components.MenuOptions
 import com.nndwn.whitenoise.ui.components.Scrim
-import com.nndwn.whitenoise.ui.components.WatchAdsPanel
+import com.nndwn.whitenoise.ui.components.DialogWatchAds
+import com.nndwn.whitenoise.ui.components.LoadingScreen
+import com.nndwn.whitenoise.ui.components.OverlayScreen
+import com.nndwn.whitenoise.ui.components.OverlayScreenState
 import com.nndwn.whitenoise.ui.components.WaveVisAnim
 import com.nndwn.whitenoise.ui.features.main.components.DialogNotice
 import com.nndwn.whitenoise.ui.features.main.components.MiniPlayBottom
@@ -72,30 +75,40 @@ fun WhiteNoiseAppUi (
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = currentBackStackEntry?.destination
 
-    val isLoading by appViewModel.isLoadingAd.collectAsStateWithLifecycle()
-
     var isSidebarOpen by remember { mutableStateOf(false) }
     var noticeMessage by remember { mutableStateOf<Int?>(null) }
     var showAdsDialog by remember { mutableStateOf(false) }
     var overlayTimer by remember { mutableStateOf(false) }
 
-    val showAds by appViewModel.isAdsEnabled.collectAsStateWithLifecycle()
+    val shouldShowAd by appViewModel.shouldShowAd.collectAsStateWithLifecycle()
     val isPremium by appViewModel.isPremium.collectAsStateWithLifecycle()
     val activeAudio by appViewModel.isActiveAudio.collectAsStateWithLifecycle()
     val sessionTrackDuration by appViewModel.sessionTrackDuration.collectAsStateWithLifecycle()
     val isPlaying by appViewModel.isPlaying.collectAsStateWithLifecycle()
+    val isLoadingAd by appViewModel.isLoadingAd.collectAsStateWithLifecycle()
+    val adPrice by appViewModel.removeAdsPrice.collectAsStateWithLifecycle()
 
     var pendingAudioAction by remember { mutableStateOf<(() -> Unit)?>(null) }
+
+    val handlePlayRequest = { action: () -> Unit ->
+        val needsAds = !isPremium && shouldShowAd
+        if (needsAds) {
+            pendingAudioAction = action
+            showAdsDialog = true
+        } else {
+            action()
+        }
+    }
 
 
     val handleMenuOption: (MenuOptions) -> Unit = { menu ->
         isSidebarOpen = false
         when (menu) {
             MenuOptions.DEBUG -> navController.navigate(AppRoute.Debug)
-            MenuOptions.REMOVE_ADS -> if (!isPremium) showAdsDialog = true
+            MenuOptions.REMOVE_ADS -> if (!isPremium) showAdsDialog = !showAdsDialog
             MenuOptions.RATE_APP -> gotoPlayStore(context)
             MenuOptions.REPORT_ISSUE -> gotoMail(context)
-            MenuOptions.TIMER -> overlayTimer = true
+            MenuOptions.TIMER -> overlayTimer = !overlayTimer
         }
     }
 
@@ -154,7 +167,9 @@ fun WhiteNoiseAppUi (
                                 navController.navigate(AppRoute.SoundDetail)
                             },
                             onTogglePlay = {
+                                handlePlayRequest{
                                     appViewModel.onPlayClick(audio)
+                                }
                             },
                             modifier = Modifier
                                 .pointerInput(Unit) {}
@@ -164,64 +179,39 @@ fun WhiteNoiseAppUi (
                 }
             },
             overlayContent = {
-                ListTimer(
-                    show = overlayTimer,
-                    onDismiss = { overlayTimer = false },
-                    onClick = {  appViewModel.setFocusTimer(it) }
-                )
-                WatchAdsPanel(
-                    showPanel = showAdsDialog,
-                    onDismiss = {
+                OverlayScreen(
+                    state = OverlayScreenState(
+                        overlayTimer,
+                        showAdsDialog,
+                        isLoadingAd,
+                        noticeMessage,
+                        adPrice,
+                        activeAudio
+                    ),
+                    onDismissAds = {
                         showAdsDialog = false
+                        pendingAudioAction?.invoke()
                         pendingAudioAction = null
+                        appViewModel.recordAdShown()
                     },
                     onWatchAds = {
-                        showAdsDialog = false
-                        isAdLoading = true
-                        activity?.let { act ->
-                            RewardedAdHelper.showAd(
-                                activity = act,
-                                onAdClosed = { isRewardEarned ->
-                                    isAdLoading = false
-                                    if (isRewardEarned) {
-                                        viewModel.recordAdShown()
-                                    }
-                                    pendingAudioAction?.invoke()
-                                    pendingAudioAction = null
-                                }
-                            )
-                        } ?: run {
-                            isAdLoading = false
+                        val activity = context as? Activity ?: return@OverlayScreen
+                        appViewModel.performAdFlow(activity) {
+                            showAdsDialog = false
                             pendingAudioAction?.invoke()
                             pendingAudioAction = null
                         }
                     },
                     onRemoveAds = {
+                        val activity = context as? Activity ?: return@OverlayScreen
                         showAdsDialog = false
-                        activity?.let { act ->
-                            viewModel.buyRemoveAds(act)
-                        }
-                    }
+                        appViewModel.onRemoveAdsClicked(activity)
+                    },
+                    onClickTimerOverlay = { appViewModel.setFocusTimer(it) },
+                    onDismissTimerOverlay = { overlayTimer = false },
+                    onDismissNoticeMessage = {noticeMessage = null}
                 )
-                if (isAdLoading) {
-                    Scrim(active = true, onDismiss = {})
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        WaveVisAnim(
-                            isPlaying = true,
-                            size = 80.dp
-                        )
-                    }
-                }
-                if (activeAudio == null || isTablet) {
-                    DialogNotice(
-                        visible = noticeMessage != null,
-                        text = noticeMessage?.let { stringResource(it) } ?: "",
-                        onDismiss = { noticeMessage = null }
-                    )
-                }
+
             }
         ) { innerPadding ->
             WhiteNoiseNavHost(
