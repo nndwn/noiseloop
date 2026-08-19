@@ -8,14 +8,12 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
-import com.nndwn.whitenoise.IoDispatcher
 import com.nndwn.whitenoise.MainDispatcher
 import com.nndwn.whitenoise.data.local.entity.DataAudio
 import com.nndwn.whitenoise.data.repository.AudioRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -75,14 +73,11 @@ class AudioPlaybackManager @Inject constructor(
             initialValue = null
         )
 
-
     init {
         initializeController()
     }
-
-    private fun initializeController(){
-        val sessionToken =
-            SessionToken(context, ComponentName(context, AudioPlaybackService::class.java))
+    private fun initializeController() {
+        val sessionToken = SessionToken(context, ComponentName(context, AudioPlaybackService::class.java))
         mediaControllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
         mediaControllerFuture?.addListener({
             val controller = mediaControllerFuture?.get()
@@ -98,67 +93,56 @@ class AudioPlaybackManager @Inject constructor(
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     _isPlaying.value = isPlaying
                     if (isPlaying) {
-                        lastPlayStartTime = System.currentTimeMillis()
                         startTrackingTime()
                     } else {
                         stopTrackingTime()
-                        if (lastPlayStartTime != 0L) {
-                            baseAccumulatedTime += System.currentTimeMillis() - lastPlayStartTime
-                            lastPlayStartTime = 0L
-                        }
                     }
                 }
 
                 override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                     _currentMediaItem.value = mediaItem
-
+                    resetSessionTimer()
                 }
 
                 override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-                    managerScope.launch {
-                        _playbackError.emit(true)
-                    }
+                    managerScope.launch { _playbackError.emit(true) }
                     stopTrackingTime()
                 }
             })
         }, ContextCompat.getMainExecutor(context))
     }
 
-
     fun play(mediaItem: MediaItem) {
+        resetSessionTimer()
+        mediaController?.let { player ->
+            player.setMediaItem(mediaItem)
+            player.prepare()
+            player.play()
+        }
+    }
+
+    fun resume() {
+        mediaController?.play()
+    }
+
+    fun pause() {
+        mediaController?.pause()
+    }
+
+    private fun resetSessionTimer() {
         stopTrackingTime()
         baseAccumulatedTime = 0L
         lastPlayStartTime = System.currentTimeMillis()
         _sessionTrackDuration.value = 0L
-
-        mediaController?.let { player ->
-            player.setMediaItem(mediaItem)
-            player.prepare()
-            player.repeatMode = Player.REPEAT_MODE_ONE
-            player.play()
-        }
-        startTrackingTime()
-        _currentMediaItem.value = mediaItem
     }
-
-    fun togglePlayPause() {
-        mediaController?.let { player ->
-            if (player.isPlaying) {
-                player.pause()
-            } else {
-                player.play()
-            }
-        }
-    }
-
 
     private fun startTrackingTime() {
         tickerJob?.cancel()
-        if (lastPlayStartTime == 0L) lastPlayStartTime = System.currentTimeMillis()
+        lastPlayStartTime = System.currentTimeMillis()
         tickerJob = managerScope.launch {
             while (isActive) {
-                val elapsedTimeThisSession = System.currentTimeMillis() - lastPlayStartTime
-                _sessionTrackDuration.value = baseAccumulatedTime + elapsedTimeThisSession
+                val currentSessionTime = System.currentTimeMillis() - lastPlayStartTime
+                _sessionTrackDuration.value = baseAccumulatedTime + currentSessionTime
                 delay(1000.milliseconds)
             }
         }
@@ -166,6 +150,10 @@ class AudioPlaybackManager @Inject constructor(
 
     private fun stopTrackingTime() {
         tickerJob?.cancel()
+        if (lastPlayStartTime != 0L) {
+            baseAccumulatedTime += System.currentTimeMillis() - lastPlayStartTime
+            lastPlayStartTime = 0L
+        }
     }
 
     fun release() {

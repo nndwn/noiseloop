@@ -1,10 +1,18 @@
 package com.nndwn.whitenoise.data.repository
 
 import android.content.Context
+import androidx.work.Constraints
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
+import com.nndwn.whitenoise.IoDispatcher
 import com.nndwn.whitenoise.data.local.InitialAudioData
 import com.nndwn.whitenoise.data.local.dao.AudioDao
 import com.nndwn.whitenoise.data.local.entity.DataAudio
 import com.nndwn.whitenoise.data.local.entity.LabelAudio
+import com.nndwn.whitenoise.worker.DownloadAudioWorker
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -13,10 +21,12 @@ import java.io.File
 import java.io.FileOutputStream
 import java.net.URL
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class AudioRepository @Inject constructor(
     private val audioDao: AudioDao,
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ){
     fun getAllAudio(): Flow<List<DataAudio>> = audioDao.getAllAudio()
 
@@ -71,6 +81,23 @@ class AudioRepository @Inject constructor(
     }
     suspend fun updateAudioSourceAndLabel(id: String, newPath: String, newLabel: LabelAudio) {
         audioDao.updateAudioSourceAndLabel(id, newPath, newLabel)
+    }
+
+    fun enqueueDownloadAudio(context: Context, audioId: String) {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val downloadRequest = OneTimeWorkRequestBuilder<DownloadAudioWorker>()
+            .setConstraints(constraints)
+            .setInputData(workDataOf(DownloadAudioWorker.KEY_AUDIO_ID to audioId))
+            .build()
+
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            "download_$audioId",
+            ExistingWorkPolicy.KEEP,
+            downloadRequest
+        )
     }
 
     suspend fun downloadAndSaveAudio(context: Context, audio: DataAudio) {

@@ -107,15 +107,6 @@ fun WhiteNoiseAppUi (
                         is UiEffect.ShowToast -> noticeMessage = effect.message
                         is UiEffect.NavigateTo -> navController.navigate(effect.route)
                         is UiEffect.NavigateBack -> navController.popBackStack()
-                        is UiEffect.ValidationPlay -> {
-                            //todo: add condition flavor
-                            if (!isPremium && showAds) {
-                                pendingAudioAction = effect.validation
-                                showAdsDialog = true
-                            } else {
-                                effect.validation
-                            }
-                        }
                     }
                 }
 
@@ -163,11 +154,7 @@ fun WhiteNoiseAppUi (
                                 navController.navigate(AppRoute.SoundDetail)
                             },
                             onTogglePlay = {
-                                if (!isPlaying) {
-                                    handlePlayRequest { viewModel.togglePlayPause() }
-                                } else {
-                                    viewModel.togglePlayPause()
-                                }
+                                    appViewModel.onPlayClick(audio)
                             },
                             modifier = Modifier
                                 .pointerInput(Unit) {}

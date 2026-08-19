@@ -14,6 +14,7 @@ import com.nndwn.whitenoise.data.repository.PreferenceRepository
 import com.nndwn.whitenoise.data.local.entity.DataAudio
 import com.nndwn.whitenoise.data.local.entity.LabelAudio
 import com.nndwn.whitenoise.data.extensions.asMediaItem
+import com.nndwn.whitenoise.data.local.InitialAudioData
 import com.nndwn.whitenoise.data.repository.AudioRepository
 import com.nndwn.whitenoise.service.AudioPlaybackManager
 import com.nndwn.whitenoise.service.TimerTime
@@ -55,27 +56,20 @@ class MainViewModel @Inject constructor(
 ) : ViewModel(){
     val isPlaying = playbackManager.isPlaying
     val sessionTrackDuration = playbackManager.sessionTrackDuration
-
-    private val _activeAudioId = MutableStateFlow<String?>(null)
     val activeAudio = playbackManager.activeAudio
 
-    private val _listAudio = MutableStateFlow<List<DataAudio>?>(null)
     private val _currentFilter = MutableStateFlow<AudioFilter>(AudioFilter.All)
 
     val musicListState: StateFlow<MainUiState> = combine(
-        _listAudio,
+        repository.getAllAudio(),
         _currentFilter
     ) { list, filter ->
-        if (list == null) {
-            MainUiState.Loading
-        } else {
-            val filteredList = when (filter) {
-                AudioFilter.All -> list
-                AudioFilter.Favorite -> list.filter { it.isFavorite }
-                is AudioFilter.SelectedType -> list.filter { it.type == filter.type }
-            }
-            MainUiState.Success(filteredList)
+        val filteredList = when (filter) {
+            AudioFilter.All -> list
+            AudioFilter.Favorite -> list.filter { it.isFavorite }
+            is AudioFilter.SelectedType -> list.filter { it.type == filter.type }
         }
+        MainUiState.Success(filteredList)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -85,7 +79,7 @@ class MainViewModel @Inject constructor(
 
     init {
         loadLastPlayedAudio()
-        playbackError()
+
     }
 
 

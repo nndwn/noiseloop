@@ -35,20 +35,8 @@ class AudioPlaybackService : MediaSessionService() {
     @Inject
     lateinit var audioRepository : AudioRepository
 
-    private var startTime: Long = 0L
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var mediaSession: MediaSession? = null
-    private var playerListener: Player.Listener? = null
-
-    companion object {
-        var sessionStartTime: Long = 0L
-            private set
-    }
-
-    private fun saveDurationTrack() {
-        if (startTime == 0L) return
-        startTime = 0L
-    }
 
     @OptIn(UnstableApi::class)
     override fun onCreate() {
@@ -62,8 +50,6 @@ class AudioPlaybackService : MediaSessionService() {
             .setSessionActivity(pendingIntent)
             .setCallback(sessionCallback)
             .build()
-
-        setupPlayerListener(player)
     }
 
     private fun initializePlayer(): ExoPlayer {
@@ -152,34 +138,13 @@ class AudioPlaybackService : MediaSessionService() {
         }
     }
 
-    private fun setupPlayerListener(player: Player) {
-        playerListener = object : Player.Listener {
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                if (isPlaying) {
-                    if (startTime == 0L) {
-                        val currentTime = System.currentTimeMillis()
-                        startTime = currentTime
-                        sessionStartTime = currentTime
-                    }
-                } else {
-                    saveDurationTrack()
-                }
-            }
-        }
-        playerListener?.let { player.addListener(it) }
-    }
-
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
         return mediaSession
     }
 
     override fun onDestroy() {
-        saveDurationTrack()
         serviceScope.cancel()
         mediaSession?.run {
-            playerListener?.let { player.removeListener(it) }
-            sessionStartTime = 0L
-            startTime = 0L
             player.release()
             release()
             mediaSession = null

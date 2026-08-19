@@ -8,12 +8,15 @@ import androidx.palette.graphics.Palette
 import com.nndwn.whitenoise.IoDispatcher
 import com.nndwn.whitenoise.R
 import com.nndwn.whitenoise.ads.BillingHelper
+import com.nndwn.whitenoise.data.extensions.asMediaItem
 import com.nndwn.whitenoise.data.local.entity.DataAudio
+import com.nndwn.whitenoise.data.local.entity.LabelAudio
 import com.nndwn.whitenoise.data.repository.AudioRepository
 import com.nndwn.whitenoise.data.repository.PreferenceRepository
 import com.nndwn.whitenoise.service.AudioPlaybackManager
 import com.nndwn.whitenoise.service.FocusTimerManager
 import com.nndwn.whitenoise.service.TimerTime
+import com.nndwn.whitenoise.ui.features.main.UiEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
@@ -22,9 +25,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class AppViewModel @Inject constructor(
@@ -47,6 +54,37 @@ class AppViewModel @Inject constructor(
     val uiEffect = controller.uiEffect
     private val _isLoadingAd = MutableStateFlow(false)
     val isLoadingAd = _isLoadingAd.asStateFlow()
+
+    fun onPlayClick(audio: DataAudio) {
+        val idAudio = isActiveAudio.value?.id
+        if ( idAudio == audio.id) {
+            if (isPlaying.value) {
+                playback.pause()
+            } else {
+                playback.resume()
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            playback.play(audio.asMediaItem(context))
+            val isSuccess = withTimeoutOrNull(7.seconds) {
+                playback.isPlaying.first { it }
+            }
+
+            if (isSuccess == null){
+                controller.sendEffect(UiEffect.ShowToast(R.string.msg_download_required))
+                return@launch
+            }
+
+            preferenceRepository.saveLastAudioId(audio.id)
+            if (audio.label == LabelAudio.ONLINE) {
+                repository.downloadAndSaveAudio(context, audio)
+            }
+        }
+    }
+
+
 
     val isAdsEnabled: StateFlow<Boolean> = preferenceRepository.shouldShowAd
         .stateIn(
@@ -77,6 +115,14 @@ class AppViewModel @Inject constructor(
             isActiveAudio.collectLatest { audio ->
                 if (audio != null && !audio.isColor) {
                     generateAndSaveColors(audio)
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            playback.playbackError.collectLatest { error ->
+                if (error) {
+                    controller.sendEffect(UiEffect.ShowToast(R.string.msg_error_generic))
                 }
             }
         }
