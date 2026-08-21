@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.nndwn.whitenoise.BuildConfig
 import com.nndwn.whitenoise.R
 import com.nndwn.whitenoise.ui.theme.dimens
-import com.nndwn.whitenoise.ui.utils.LocalIsPremium
+import com.nndwn.whitenoise.ui.LocalIsPremium
 
 enum class MenuOptions(
     @param:StringRes val label : Int,

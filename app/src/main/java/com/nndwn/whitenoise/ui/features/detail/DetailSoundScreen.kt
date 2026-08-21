@@ -60,9 +60,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.unit.sp
-import com.nndwn.whitenoise.ui.components.DurationSessionText
-import com.nndwn.whitenoise.ui.components.RunningText
-import com.nndwn.whitenoise.ui.components.WaveVisAnim
 import com.nndwn.whitenoise.ui.utils.LocalIsTablet
 
 @Composable
@@ -142,8 +139,8 @@ fun DetailScreen(
                                     timePlaying = timePlaying,
                                     title = item.name,
                                     type = item.type.name,
-                                    fontSizeTitle = 27.sp,
-                                    fontSizeType = 16.sp
+                                    textStyleTitle = 27.sp,
+                                    textStyleType = 16.sp
                                 )
                             }
                             Spacer(modifier = Modifier.height(32.dp))

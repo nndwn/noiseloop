@@ -40,7 +40,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.nndwn.whitenoise.ui.theme.dimens
-import com.nndwn.whitenoise.ui.utils.LocalSizeWidth
+import com.nndwn.whitenoise.ui.LocalSizeWidth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt

@@ -31,7 +31,6 @@ fun FavoriteButton(
         Icon(
             painter = painterResource(if (favorite) R.drawable.ic_heart else R.drawable.ic_heart_line),
             contentDescription = if (favorite) "sound favorite" else "sound not favorite",
-            tint = Palette.White,
             modifier = Modifier
                 .fillMaxSize()
                 .bounceClickEffect(favorite)

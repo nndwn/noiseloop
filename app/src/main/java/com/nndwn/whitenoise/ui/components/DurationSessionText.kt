@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import com.nndwn.whitenoise.ui.theme.dimens
 import com.nndwn.whitenoise.utils.formatTime
 
 @Composable
@@ -30,7 +31,7 @@ fun DurationSessionText(
         Column(
             modifier = modifier
         ) {
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(MaterialTheme.dimens.extraSmall))
             Text(
                 text = formatTime(timePlaying),
                 style = style.copy(

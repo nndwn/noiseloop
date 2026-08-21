@@ -25,15 +25,14 @@ import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.InstallStatus
 import com.google.android.play.core.install.model.UpdateAvailability
 import com.nndwn.whitenoise.data.repository.PreferenceRepository
+import com.nndwn.whitenoise.ui.LocalSizeHeight
+import com.nndwn.whitenoise.ui.LocalSizeWidth
 import com.nndwn.whitenoise.ui.WhiteNoiseAppUi
 import com.nndwn.whitenoise.ui.theme.AppTheme
-import com.nndwn.whitenoise.ui.utils.LocalSizeHeight
-import com.nndwn.whitenoise.ui.utils.LocalSizeWidth
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.text.toInt
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {

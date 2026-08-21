@@ -4,10 +4,6 @@ import com.nndwn.whitenoise.data.local.entity.DataAudio
 import com.nndwn.whitenoise.data.local.entity.TypeAudio
 import kotlinx.serialization.Serializable
 
-sealed interface UiEvent {
-
-}
-
 @Serializable
 sealed interface AudioFilter {
     @Serializable
@@ -21,4 +17,8 @@ sealed interface AudioFilter {
 sealed interface  MainUiState {
     data object Loading : MainUiState
     data class Success(val list : List<DataAudio>) : MainUiState
+}
+
+sealed interface MainUiEvent {
+
 }

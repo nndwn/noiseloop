@@ -137,7 +137,6 @@ fun MiniPlayBottom(
 
             TogglePlay(
                 sizeIcon = MaterialTheme.dimens.iconExtraLarge,
-                paddingIcon = MaterialTheme.dimens.small,
                 isPlaying = state.isPlaying,
                 onTogglePlay = onTogglePlay
             )

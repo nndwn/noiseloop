@@ -1,14 +1,11 @@
 package com.nndwn.whitenoise.ui
 
 import android.app.Activity
-import android.view.Window
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
@@ -23,40 +20,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.nndwn.whitenoise.ads.RewardedAdHelper
-import com.nndwn.whitenoise.ui.components.ListTimer
 import com.nndwn.whitenoise.ui.components.MainLayout
 import com.nndwn.whitenoise.ui.components.MainLayoutState
 import com.nndwn.whitenoise.ui.components.MenuOptions
-import com.nndwn.whitenoise.ui.components.Scrim
-import com.nndwn.whitenoise.ui.components.DialogWatchAds
-import com.nndwn.whitenoise.ui.components.LoadingScreen
 import com.nndwn.whitenoise.ui.components.OverlayScreen
 import com.nndwn.whitenoise.ui.components.OverlayScreenState
-import com.nndwn.whitenoise.ui.components.WaveVisAnim
-import com.nndwn.whitenoise.ui.features.main.components.DialogNotice
 import com.nndwn.whitenoise.ui.features.main.components.MiniPlayBottom
 import com.nndwn.whitenoise.ui.features.main.components.MiniPlayState
 import com.nndwn.whitenoise.ui.navigation.AppRoute
 import com.nndwn.whitenoise.ui.navigation.WhiteNoiseNavHost
 import com.nndwn.whitenoise.ui.theme.toComposeColor
-import com.nndwn.whitenoise.ui.utils.LocalIsPremium
-import com.nndwn.whitenoise.ui.utils.LocalItemTimerHandler
-import com.nndwn.whitenoise.ui.utils.LocalMenuOptionHandler
-import com.nndwn.whitenoise.ui.utils.LocalSizeWidth
-import com.nndwn.whitenoise.ui.utils.LocalToggleSidebar
 import com.nndwn.whitenoise.ui.utils.gotoMail
 import com.nndwn.whitenoise.ui.utils.gotoPlayStore
 
@@ -67,7 +50,6 @@ fun WhiteNoiseAppUi (
 
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val windowSizeWidth = LocalSizeWidth.current
 
@@ -131,7 +113,14 @@ fun WhiteNoiseAppUi (
         LocalIsPremium provides (isPremium),
         LocalToggleSidebar provides {isSidebarOpen = !isSidebarOpen},
         LocalMenuOptionHandler provides handleMenuOption,
-        LocalItemTimerHandler provides {overlayTimer = !overlayTimer}
+        LocalItemTimerHandler provides {overlayTimer = !overlayTimer},
+        LocalIsPlaying provides isPlaying,
+        LocalActiveAudio provides activeAudio,
+        LocalPlayHandle provides {
+            handlePlayRequest{
+                appViewModel.onPlayClick(it)
+            }
+        }
     ) {
         MainLayout(
             state = MainLayoutState().copy(
@@ -217,28 +206,7 @@ fun WhiteNoiseAppUi (
             WhiteNoiseNavHost(
                 navController = navController,
                 innerPadding = innerPadding,
-                listFilter = listFilter,
-                isPlaying = isPlaying,
-                isLoading = isLoading,
-                activeAudio = activeAudio,
-                currentFilter = currentFilter,
-                animatedBackgroundColor = animatedBackgroundColor,
-                dominantColor = dominantColor,
-                sessionTrackDuration = sessionTrackDuration,
-                onMenuClick = { isSidebarOpen = !isSidebarOpen },
-                onFilterChanged = { itemFilter -> viewModel.changeFilter(itemFilter) },
-                onAudioClick = { audioData -> handlePlayRequest { viewModel.playAudio(audioData) } },
-                onSetFavorite = { audioData, set -> viewModel.toggleFavorite(audioData, set) },
-                onTogglePlay = {
-                    if (!isPlaying) {
-                        handlePlayRequest { viewModel.togglePlayPause() }
-                    } else {
-                        viewModel.togglePlayPause()
-                    }
-                },
-                onTimerClick = { overlayTimer = !overlayTimer },
-                onSidebarRightClick = { isSidebarOpen = !isSidebarOpen },
-                onLeftSideBar = handleMenuOption
+                activeAudioId = activeAudio?.id
             )
         }
     }

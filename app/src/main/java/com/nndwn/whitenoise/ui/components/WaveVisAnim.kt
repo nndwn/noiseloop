@@ -5,8 +5,10 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -15,10 +17,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.nndwn.whitenoise.ui.theme.Palette
 import kotlinx.coroutines.isActive
 
 
@@ -28,11 +30,11 @@ fun WaveVisAnim(
     isPlaying: Boolean,
     modifier: Modifier = Modifier,
     size : Dp = 100.dp,
+    color : Color = MaterialTheme.colorScheme.primary,
     alignment : Alignment.Horizontal = Alignment.CenterHorizontally
     ) {
     BoxWithConstraints(
-        modifier = modifier
-            .size(size),
+        modifier = modifier.size(size),
         contentAlignment = Alignment.Center) {
 
         val barWidth = maxWidth * 0.09f
@@ -52,10 +54,10 @@ fun WaveVisAnim(
             verticalAlignment = Alignment.CenterVertically,
         ) {
 
-            SingleAudioBar(scale1, barWidth)
-            SingleAudioBar(scale2, barWidth)
-            SingleAudioBar(scale3, barWidth)
-            SingleAudioBar(scale4, barWidth)
+            SingleAudioBar(scale1, barWidth, color)
+            SingleAudioBar(scale2, barWidth, color)
+            SingleAudioBar(scale3, barWidth, color)
+            SingleAudioBar(scale4, barWidth, color)
         }
     }
 }
@@ -83,14 +85,14 @@ private fun rememberAudioBarScale(
 }
 
 @Composable
-private fun SingleAudioBar(scale: Float, width : Dp) {
+private fun SingleAudioBar(scale: Float, width : Dp, color : Color) {
     Box(
         modifier = Modifier
             .width(width)
             .fillMaxHeight(fraction = scale)
             .background(
-                color =  Palette.White ,
-                shape = RoundedCornerShape(percent = 50)
+                color = color,
+                shape = CircleShape
             )
     )
 }

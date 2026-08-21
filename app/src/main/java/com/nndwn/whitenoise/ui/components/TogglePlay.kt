@@ -17,11 +17,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import com.nndwn.whitenoise.R
+import com.nndwn.whitenoise.ui.theme.dimens
 
 @Composable
 fun TogglePlay(
     sizeIcon: Dp,
-    paddingIcon: Dp,
     isPlaying: Boolean,
     onTogglePlay: () -> Unit
 ) {
@@ -34,7 +34,7 @@ fun TogglePlay(
             .background(
                 color = MaterialTheme.colorScheme.primary ,
                 shape = CircleShape)
-            .padding(paddingIcon)
+            .padding(MaterialTheme.dimens.small)
     ) {
         val iconRes = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
         val description = if (isPlaying) "sound stop" else "sound playing"

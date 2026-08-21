@@ -4,6 +4,7 @@ import androidx.annotation.DrawableRes
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
+import com.nndwn.whitenoise.R
 import com.nndwn.whitenoise.ui.theme.CharcoalDarkGray
 import com.nndwn.whitenoise.ui.theme.MediumDarkGray
 import com.nndwn.whitenoise.ui.theme.toArgbLong
@@ -13,11 +14,11 @@ import com.nndwn.whitenoise.ui.theme.toArgbLong
 data class DataAudio(
     @PrimaryKey
     val id: String,
-    val name : String,
-    val type : TypeAudio,
-    val sourcePath : String,
-    @field:DrawableRes val cover : Int,
-    val label : LabelAudio,
+    val name : String  = "",
+    val type : TypeAudio = TypeAudio.NATURE,
+    val sourcePath : String = "",
+    @field:DrawableRes val cover : Int = R.drawable.sample,
+    val label : LabelAudio = LabelAudio.OFFLINE,
     val isFavorite: Boolean = false,
     val isColor : Boolean = false,
     val colorPrimary: Long = MediumDarkGray.toArgbLong(),

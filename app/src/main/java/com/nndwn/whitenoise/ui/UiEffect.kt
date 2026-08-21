@@ -7,5 +7,5 @@ sealed interface UiEffect{
     data class ShowToast(@param:StringRes val message : Int) : UiEffect
     data class NavigateTo(val route : AppRoute) : UiEffect
 
-    object NavigateBack : UiEffect
+    data object NavigateBack : UiEffect
 }

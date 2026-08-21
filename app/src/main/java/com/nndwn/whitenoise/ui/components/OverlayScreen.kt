@@ -7,7 +7,7 @@ import androidx.compose.ui.res.stringResource
 import com.nndwn.whitenoise.data.local.entity.DataAudio
 import com.nndwn.whitenoise.service.TimerTime
 import com.nndwn.whitenoise.ui.features.main.components.DialogNotice
-import com.nndwn.whitenoise.ui.utils.LocalSizeWidth
+import com.nndwn.whitenoise.ui.LocalSizeWidth
 
 data class OverlayScreenState(
     val overlayTimer : Boolean,

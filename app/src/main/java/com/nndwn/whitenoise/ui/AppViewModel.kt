@@ -116,7 +116,7 @@ class AppViewModel @Inject constructor(
 
             preferenceRepository.saveLastAudioId(audio.id)
             if (audio.label == LabelAudio.ONLINE) {
-                databaseRepository.downloadAndSaveAudio(context, audio)
+                databaseRepository.enqueueDownloadAudio(context, audio.id)
             }
         }
     }

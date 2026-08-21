@@ -38,7 +38,9 @@ class AudioRepository @Inject constructor(
         withContext(ioDispatcher) {
             val existingSongsMap = audioDao.getCurrentDatabaseSongs().associateBy { it.id }
 
-            val finalizedList = InitialAudioData.audioList.map { repoAudio ->
+            val finalizedList = InitialAudioData.audioList.filter{
+                it.id.isNotEmpty()
+            }.map { repoAudio ->
                 val userAudio = existingSongsMap[repoAudio.id]
                 syncAudioItem(repoAudio, userAudio)
             }

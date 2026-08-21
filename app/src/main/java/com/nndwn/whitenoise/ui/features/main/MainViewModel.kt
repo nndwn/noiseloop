@@ -132,7 +132,7 @@ class MainViewModel @Inject constructor(
             playbackManager.play(audio.asMediaItem(context))
 
             if (audio.label == LabelAudio.ONLINE) {
-                repository.downloadAndSaveAudio(context, audio)
+                //repository.downloadAndSaveAudio(context, audio)
             }
         }
     }
