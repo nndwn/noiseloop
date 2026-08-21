@@ -1,5 +1,6 @@
 package com.nndwn.whitenoise.ui.features.main
 
+import androidx.annotation.StringRes
 import com.nndwn.whitenoise.data.local.entity.DataAudio
 import com.nndwn.whitenoise.data.local.entity.TypeAudio
 import kotlinx.serialization.Serializable
@@ -20,5 +21,7 @@ sealed interface  MainUiState {
 }
 
 sealed interface MainUiEvent {
-
+    data object NavigateToDetail: MainUiEvent
+    data object NavigateBack : MainUiEvent
+    data class Toast(@field:StringRes val message: Int) : MainUiEvent
 }

@@ -29,6 +29,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.nndwn.whitenoise.data.local.entity.DataAudio
+import com.nndwn.whitenoise.ui.LocalActiveAudio
 import com.nndwn.whitenoise.ui.LocalIsPlaying
 import com.nndwn.whitenoise.ui.components.DetailAudioInfo
 import com.nndwn.whitenoise.ui.components.FavoriteButton
@@ -45,15 +46,14 @@ import com.nndwn.whitenoise.ui.LocalSizeWidth
 
 @Composable
 fun MainSidebar(
-    activeAudio : DataAudio?,
     timePlaying: Long,
     navigate: () -> Unit,
     onClickFavorite: () -> Unit
 ) {
     val windowSizeHeight = LocalSizeHeight.current
-    val isPlaying = LocalIsPlaying.current
     val playHandle = LocalPlayHandle.current
     val menus = LocalMenuOptionHandler.current
+    val activeAudio = LocalActiveAudio.current
 
     Surface (
         modifier = Modifier
@@ -84,7 +84,6 @@ fun MainSidebar(
             activeAudio?.let { audio ->
                 MediaPlayerSidebar(
                     activeAudio = audio,
-                    isPlaying = isPlaying,
                     timePlaying = timePlaying,
                     navigate = navigate,
                     onClickFavorite = onClickFavorite,
@@ -100,7 +99,6 @@ fun MainSidebar(
 private fun MediaPlayerSidebar(
     activeAudio: DataAudio,
     modifier: Modifier = Modifier,
-    isPlaying : Boolean,
     timePlaying : Long,
     navigate : () -> Unit,
     onClickFavorite : () -> Unit,
@@ -108,6 +106,8 @@ private fun MediaPlayerSidebar(
 ) {
 
     val onTimerHandle = LocalItemTimerHandler.current
+    val isPlaying = LocalIsPlaying.current
+
     Column (modifier = modifier
         .fillMaxWidth()
         .padding(MaterialTheme.dimens.medium),
@@ -149,7 +149,7 @@ private fun MediaPlayerSidebar(
                 textStyleType = MaterialTheme.typography.bodyLarge
             )
         }
-
+//todo : Periksa ukuran nya tidak biasa
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -157,6 +157,7 @@ private fun MediaPlayerSidebar(
         ) {
             FavoriteButton(
                 favorite = activeAudio.isFavorite,
+                size = 58.dp,
                 onClick = onClickFavorite,
             )
             TogglePlay(
@@ -167,7 +168,10 @@ private fun MediaPlayerSidebar(
                 }
             )
 
-            TimerButton(onClickTimer = onTimerHandle)
+            TimerButton(
+                size = 58.dp,
+                onClickTimer = onTimerHandle
+            )
         }
     }
 }

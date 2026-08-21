@@ -8,14 +8,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import com.nndwn.whitenoise.ui.theme.Palette
+import com.nndwn.whitenoise.ui.theme.dimens
 
 @Composable
 fun ThreeDotsHorizontal(
@@ -24,18 +27,19 @@ fun ThreeDotsHorizontal(
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .size(48.dp)
+            .size(MaterialTheme.dimens.iconExtraLarge)
             .clip(CircleShape)
+            .semantics { contentDescription = "Menu" }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = androidx.compose.material3.ripple(),
+                indication = ripple(),
                 onClick = onClick
             )
 
         ,
     ) {
-        val sizeDot = 4.dp
-        val spaceBetween = 4.dp
+        val sizeDot = MaterialTheme.dimens.extraSmall
+        val spaceBetween = MaterialTheme.dimens.extraSmall
         Column(
             verticalArrangement = Arrangement.spacedBy(spaceBetween, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -52,6 +56,8 @@ private fun Dots(size: Dp){
     Box(
         modifier = Modifier
             .size(size)
-            .background(color = Palette.White, shape = CircleShape)
+            .background(
+                color = MaterialTheme.colorScheme.onSurface,
+                shape = CircleShape)
     )
 }

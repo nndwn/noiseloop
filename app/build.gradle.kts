@@ -54,9 +54,6 @@ android {
                 enable = true
             }
             signingConfig = signingConfigs.getByName("release")
-            ndk {
-                debugSymbolLevel = "FULL"
-            }
 
         }
 
@@ -98,7 +95,7 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.concurrent.futures.ktx)
-    implementation(libs.compose.shimmer)
+
 
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.session)

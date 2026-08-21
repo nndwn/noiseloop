@@ -11,6 +11,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.nndwn.whitenoise.MainDispatcher
 import com.nndwn.whitenoise.data.local.entity.DataAudio
 import com.nndwn.whitenoise.data.repository.AudioRepository
+import com.nndwn.whitenoise.data.repository.PreferenceRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -39,6 +41,7 @@ import kotlin.time.Duration.Companion.milliseconds
 class AudioPlaybackManager @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val repository: AudioRepository,
+    private val preferenceRepository: PreferenceRepository,
     @MainDispatcher private val mainDispatcher: CoroutineDispatcher
 ) {
     private val _isPlaying = MutableStateFlow(false)
@@ -60,11 +63,15 @@ class AudioPlaybackManager @Inject constructor(
     private val managerScope = CoroutineScope(SupervisorJob() + mainDispatcher)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val activeAudio: StateFlow<DataAudio?> = _currentMediaItem
-        .map { mediaItem -> mediaItem?.mediaId }
+    val activeAudio: StateFlow<DataAudio?> = combine(
+        _currentMediaItem.map { it?.mediaId },
+        preferenceRepository.lastAudioId
+    ) { controllerId, savedId ->
+        controllerId ?: savedId
+    }
         .distinctUntilChanged()
         .flatMapLatest { id ->
-            if (id == null) flowOf(null)
+            if (id.isNullOrEmpty()) flowOf(null)
             else repository.getAudioFlowById(id)
         }
         .stateIn(

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -16,13 +17,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.nndwn.whitenoise.R
 import com.nndwn.whitenoise.ui.extentions.bounceClickEffect
-import com.nndwn.whitenoise.ui.theme.Palette
+import com.nndwn.whitenoise.ui.theme.dimens
 
 @Composable
 fun TimerButton(
     modifier: Modifier = Modifier,
-    size : Dp = 58.dp,
-    padding : Dp = 14.dp,
+    size : Dp ,
     onClickTimer: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -33,12 +33,11 @@ fun TimerButton(
         interactionSource = interactionSource,
         modifier = modifier
             .size(size)
-            .padding(padding)
+            .padding(MaterialTheme.dimens.medium)
     ) {
         Icon(
             painter = painterResource(R.drawable.ic_timer),
             contentDescription = "sound timer",
-            tint = Palette.White,
             modifier = Modifier
                 .fillMaxSize()
                 .bounceClickEffect(isPressed)

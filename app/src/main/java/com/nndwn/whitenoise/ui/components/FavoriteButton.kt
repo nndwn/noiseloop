@@ -5,28 +5,27 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import com.nndwn.whitenoise.R
 import com.nndwn.whitenoise.ui.extentions.bounceClickEffect
-import com.nndwn.whitenoise.ui.theme.Palette
+import com.nndwn.whitenoise.ui.theme.dimens
 
 @Composable
 fun FavoriteButton(
     favorite: Boolean,
     modifier : Modifier = Modifier,
-    size : Dp = 58.dp,
-    padding : Dp = 14.dp,
+    size : Dp,
     onClick: () -> Unit
 ){
     IconButton(
         onClick = onClick,
         modifier = modifier
             .size(size)
-            .padding(padding)
+            .padding(MaterialTheme.dimens.medium)
     ) {
         Icon(
             painter = painterResource(if (favorite) R.drawable.ic_heart else R.drawable.ic_heart_line),
