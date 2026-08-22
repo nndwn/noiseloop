@@ -12,8 +12,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,18 +22,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
@@ -43,72 +36,138 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.nndwn.whitenoise.R
-import com.nndwn.whitenoise.data.local.entity.DataAudio
 import com.nndwn.whitenoise.ui.components.TogglePlay
 import com.nndwn.whitenoise.ui.components.DetailAudioInfo
 import com.nndwn.whitenoise.ui.components.FavoriteButton
-import com.nndwn.whitenoise.ui.components.ThreeDotsHorizontal
 import com.nndwn.whitenoise.ui.components.TimerButton
 import com.nndwn.whitenoise.ui.theme.Dimens
-import com.nndwn.whitenoise.ui.theme.Palette
-
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.ui.unit.sp
-import com.nndwn.whitenoise.ui.utils.LocalIsTablet
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.nndwn.whitenoise.ui.LocalActiveAudio
+import com.nndwn.whitenoise.ui.LocalIsPlaying
+import com.nndwn.whitenoise.ui.LocalItemTimerHandler
+import com.nndwn.whitenoise.ui.LocalSizeWidth
+import com.nndwn.whitenoise.ui.features.detail.components.BoxGradientAnimation
+import com.nndwn.whitenoise.ui.features.detail.components.Header
+import com.nndwn.whitenoise.ui.theme.CharcoalDarkGray
+import com.nndwn.whitenoise.ui.theme.MediumDarkGray
+import com.nndwn.whitenoise.ui.theme.dimens
+import com.nndwn.whitenoise.ui.theme.toComposeColor
+
 
 @Composable
 fun DetailScreen(
-    onBackClick: () -> Unit,
-    colors: List<Color>,
-    timePlaying: Long,
-    playing: Boolean,
-    onFavoriteClick: () -> Unit,
-    itemAudio: DataAudio? = null,
-    onTogglePlay: () -> Unit,
-    onTimerClick: () -> Unit,
-    onClickSidebarRight: () -> Unit
+    viewModel : DetailViewModel = hiltViewModel()
+){
+
+}
+
+
+@Composable
+fun DetailScreenContent(
+    timePlaying : Long,
+    onClickFavorite: () -> Unit,
+    navigateBack : () -> Unit
 ) {
-    val isTablet = LocalIsTablet.current
+    val audioActive = LocalActiveAudio.current
+    val windowSizeWidth = LocalSizeWidth.current
+    val isPlaying  = LocalIsPlaying.current
 
-    BoxGradientAnimation(colors)
-    Scaffold(
-        containerColor = Color.Transparent,
-        topBar = {
-            Header(
-                onClickBack = onBackClick,
-                onClickSidebar = onClickSidebarRight
-            )
-        },
-        bottomBar = {
 
-        }
-    ) { paddingValues ->
-        AnimatedVisibility(
-            visible = itemAudio != null,
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
-            itemAudio?.let { item ->
-                if (isTablet) {
-                    Row(
+    val listColor = remember { listOf(
+        audioActive?.colorPrimary?.toComposeColor() ?: MediumDarkGray,
+        audioActive?.colorSecondary?.toComposeColor() ?: CharcoalDarkGray
+    ) }
+    BoxGradientAnimation(listColor)
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Header(
+            onClickBack = navigateBack,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+        )
+        audioActive?.let { audio ->
+            if (windowSizeWidth != WindowWidthSizeClass.Compact){
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(
+                            horizontal = MaterialTheme.dimens.extraLarge,
+                            vertical = MaterialTheme.dimens.large),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(MaterialTheme.dimens.extraLarge)
+                ) {
+                    Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
-                            .padding(horizontal = Dimens.PaddingHorizontal * 2, vertical = 20.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(48.dp)
+                            .weight(1f)
+                            .aspectRatio(1f)
+                            .shadow(
+                                elevation = MaterialTheme.dimens.elevationMedium,
+                                shape = MaterialTheme.shapes.medium)
+                            .background(MaterialTheme.colorScheme.primaryContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(audio.cover)  ,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1.2f)
+                            .fillMaxHeight(),
+                        verticalArrangement = Arrangement.spacedBy(MaterialTheme.dimens.extraLarge),
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .widthIn(max = 410.dp)
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            DetailAudioInfo(
+                                playing = isPlaying,
+                                timePlaying = timePlaying,
+                                title =  audio.name,
+                                type = audio.type.name,
+                                textStyleTitle = MaterialTheme.typography.headlineMedium,
+                                textStyleType = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+
+                        MenuButtons(
+                            favorite = audio.isFavorite,
+                            playing = isPlaying,
+                            onClickFavorite = onClickFavorite,
+                            onClickPlay = onTogglePlay,
+                            expandWindow = true
+                        )
+                    }
+                }
+            } else {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .padding(horizontal = Dimens.PaddingHorizontal, vertical = 10.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         Box(
                             modifier = Modifier
-                                .weight(1f)
+                                .fillMaxWidth(0.9f)
                                 .aspectRatio(1f)
-                                .shadow(elevation = 8.dp, shape = RoundedCornerShape(12.dp))
+                                .shadow(elevation = 4.dp, shape = RoundedCornerShape(10.dp))
                                 .background(color = Palette.Black3),
                             contentAlignment = Alignment.Center
                         ) {
@@ -119,94 +178,48 @@ fun DetailScreen(
                                 modifier = Modifier.fillMaxSize()
                             )
                         }
-
-                        Column(
-                            modifier = Modifier
-                                .weight(1.2f)
-                                .fillMaxHeight(),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.Start
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .widthIn(max = 410.dp)
-                                    .fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                DetailAudioInfo(
-                                    playing = playing,
-                                    timePlaying = timePlaying,
-                                    title = item.name,
-                                    type = item.type.name,
-                                    textStyleTitle = 27.sp,
-                                    textStyleType = 16.sp
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(32.dp))
-                            MenuButtons(
-                                favorite = item.isFavorite,
-                                playing = playing,
-                                onClickFavorite = onFavoriteClick,
-                                onClickTimer = onTimerClick,
-                                onClickPlay = onTogglePlay,
-                                isTablet = true
-                            )
-                        }
                     }
-                } else {
+
                     Column(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
+                            .fillMaxWidth()
+                            .padding(horizontal = Dimens.PaddingHorizontal)
+                            .navigationBarsPadding(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .padding(horizontal = Dimens.PaddingHorizontal, vertical = 10.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth(0.9f)
-                                    .aspectRatio(1f)
-                                    .shadow(elevation = 4.dp, shape = RoundedCornerShape(10.dp))
-                                    .background(color = Palette.Black3),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Image(
-                                    painter = painterResource(item.cover),
-                                    contentDescription = "cover ${item.name}",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            }
-                        }
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = Dimens.PaddingHorizontal)
-                                .navigationBarsPadding(),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            DetailAudioInfo(
-                                title = item.name,
-                                type = item.type.name,
-                                playing = playing,
-                                timePlaying = timePlaying
-                            )
-                            MenuButtons(
-                                favorite = item.isFavorite,
-                                playing = playing,
-                                onClickFavorite = onFavoriteClick,
-                                onClickTimer = onTimerClick,
-                                onClickPlay = onTogglePlay
-                            )
-                        }
+                        DetailAudioInfo(
+                            title = item.name,
+                            type = item.type.name,
+                            playing = playing,
+                            timePlaying = timePlaying
+                        )
+                        MenuButtons(
+                            favorite = item.isFavorite,
+                            playing = playing,
+                            onClickFavorite = onFavoriteClick,
+                            onClickTimer = onTimerClick,
+                            onClickPlay = onTogglePlay
+                        )
                     }
+                }
+            }
+        }
+
+    }
+    Scaffold(
+
+    ) { paddingValues ->
+        AnimatedVisibility(
+            visible = itemAudio != null,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            itemAudio?.let { item ->
+                if (isTablet) {
+
+                } else {
+
                 }
             }
         }
@@ -218,141 +231,55 @@ private fun MenuButtons(
     favorite: Boolean,
     playing: Boolean,
     onClickFavorite: () -> Unit,
-    onClickTimer: () -> Unit,
     onClickPlay: () -> Unit,
-    isTablet: Boolean = false
+    expandWindow: Boolean = false
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (isTablet) Arrangement.Start else Arrangement.SpaceEvenly,
+        horizontalArrangement = if (expandWindow) Arrangement.Start else Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (isTablet) {
-
+        val timerHandle = LocalItemTimerHandler.current
+        if (expandWindow) {
             FavoriteButton(
                 favorite = favorite,
                 onClick = onClickFavorite,
                 size = 67.dp
             )
-            Spacer(modifier = Modifier.size(24.dp))
+
+            Spacer(modifier = Modifier.size(MaterialTheme.dimens.large))
+
             TogglePlay(
                 sizeIcon = 72.dp,
-                paddingIcon = 12.dp,
                 isPlaying = playing,
                 onTogglePlay = onClickPlay
             )
-            Spacer(modifier = Modifier.size(24.dp))
+            Spacer(modifier = Modifier.size(MaterialTheme.dimens.large))
+
             TimerButton(
-                onClickTimer = onClickTimer,
+                onClickTimer = timerHandle,
                 size = 67.dp
             )
         } else {
+
             FavoriteButton(
                 favorite = favorite,
-                onClick = onClickFavorite
+                onClick = onClickFavorite,
+                size = 58.dp
             )
+
             TogglePlay(
                 sizeIcon = 60.dp,
-                paddingIcon = 10.dp,
                 isPlaying = playing,
                 onTogglePlay = onClickPlay
             )
-            TimerButton(onClickTimer = onClickTimer)
-        }
-    }
-}
-
-@Composable
-private fun BoxGradientAnimation(colors: List<Color>){
-    val infiniteTransition = rememberInfiniteTransition(label = "radial_path")
-    val totalDuration = 12000
-
-    val percentX by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = keyframes {
-                durationMillis = totalDuration
-                0f at 0 using LinearEasing
-                1f at (totalDuration / 4)
-                0f at (totalDuration / 2)
-                1f at (totalDuration * 3 / 4)
-                0f at totalDuration
-            },
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "center_x"
-    )
-    val percentY by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = keyframes {
-                durationMillis = totalDuration
-                0f at 0 using LinearEasing
-                1f at (totalDuration / 4)
-                1f at (totalDuration / 2)
-                0f at (totalDuration * 3 / 4)
-                0f at totalDuration
-            },
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "center_y"
-    )
-
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .drawBehind {
-                val brush = Brush.radialGradient(
-                    colors = colors,
-                    center = Offset(x = size.width * percentX, y = size.height * percentY),
-                    radius = size.width * 1.5f
-                )
-                drawRect(brush = brush)
-            }
-    )
-}
-
-@Composable
-private fun Header(
-    modifier: Modifier = Modifier,
-    onClickBack : () -> Unit = {},
-    onClickSidebar :() -> Unit = {}
-){
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = Dimens.PaddingHorizontal, vertical = 10.dp)
-            .background(Color.Transparent)
-            .statusBarsPadding(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = ripple(),
-                    onClick = onClickBack
-                )
-        ){
-            Icon(
-                painter = painterResource(R.drawable.ic_down2),
-                contentDescription = stringResource(R.string.btn_text_back),
-                tint = Color.White,
-                modifier = Modifier.size(35.dp)
+            TimerButton(
+                size = 58.dp,
+                onClickTimer = timerHandle
             )
         }
-
-        ThreeDotsHorizontal {
-            onClickSidebar()
-        }
     }
-
 }
+
+
 

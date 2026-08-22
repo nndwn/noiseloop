@@ -10,9 +10,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
@@ -29,6 +31,7 @@ import com.nndwn.whitenoise.ui.LocalSizeHeight
 import com.nndwn.whitenoise.ui.LocalSizeWidth
 import com.nndwn.whitenoise.ui.WhiteNoiseAppUi
 import com.nndwn.whitenoise.ui.theme.AppTheme
+import com.nndwn.whitenoise.utils.DeviceSpecsLogger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -74,7 +77,15 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val windowSizeClass = calculateWindowSizeClass(this)
-
+            val context = LocalContext.current
+            if (BuildConfig.DEBUG) {
+                LaunchedEffect(Unit) {
+                    DeviceSpecsLogger.logSpecs(
+                        context = context,
+                        windowSizeClass = windowSizeClass
+                    )
+                }
+            }
             CompositionLocalProvider(
                 LocalSizeHeight provides windowSizeClass.heightSizeClass,
                 LocalSizeWidth provides windowSizeClass.widthSizeClass
