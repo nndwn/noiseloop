@@ -90,7 +90,8 @@ fun MiniPlayBottom(
                 })
             .background(animatedEffectChangeColor)
             .clip(MaterialTheme.shapes.small)
-            .padding(MaterialTheme.dimens.medium),
+            .padding(MaterialTheme.dimens.medium)
+            ,
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(MaterialTheme.dimens.medium),
         ) {

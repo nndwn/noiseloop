@@ -28,12 +28,13 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        val adsApiKey = localProperties.getProperty("ADS_API_KEY") ?: ""
-        val adsApiAlt = localProperties.getProperty("ADS_API_ALT") ?: ""
+        val adsApiKey = "ADS_API_KEY"
+        val adsApiAlt = "ADS_API_ALT"
+        val tipMe = "PURCHASE_ID_1"
 
-
-        buildConfigField("String", "ADS_API_ALT", "\"$adsApiAlt\"")
-        manifestPlaceholders["ADS_API_KEY"] = adsApiKey
+        buildConfigField("String", adsApiAlt, "\"${localProperties.getProperty(adsApiAlt) ?: ""}\"")
+        buildConfigField("String", tipMe, "\"${localProperties.getProperty(tipMe) ?: ""}\"")
+        manifestPlaceholders[adsApiKey] = localProperties.getProperty(adsApiKey) ?: ""
     }
 
     signingConfigs {

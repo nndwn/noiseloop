@@ -13,7 +13,10 @@ import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
+import com.nndwn.whitenoise.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -24,139 +27,119 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import javax.inject.Inject
-import javax.inject.Singleton
-
 
 @Singleton
-class BillingManager @Inject constructor(
-    @param:ApplicationContext private val context : Context
-) : PurchasesUpdatedListener, BillingHelper {
-    private companion object {
-        const val REMOVE_ADS_PRODUCT_ID = BuildConfig.PURCHASE_ID_1
+class BillingManager @Inject constructor(@param:ApplicationContext private val context: Context) :
+  PurchasesUpdatedListener, BillingHelper {
+  private companion object {
+    const val REMOVE_ADS_PRODUCT_ID = BuildConfig.PURCHASE_ID_1
+  }
+
+  private val scope = CoroutineScope(Dispatchers.Main)
+
+  private val _purchaseSuccessEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+  override val purchaseSuccessEvent: SharedFlow<Unit> = _purchaseSuccessEvent.asSharedFlow()
+
+  private val billingClient: BillingClient =
+    BillingClient.newBuilder(context)
+      .setListener(this)
+      .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
+      .build()
+
+  private val _productDetails = MutableStateFlow<ProductDetails?>(null)
+
+  override val removeAdsPrice: StateFlow<String?> =
+    _productDetails
+      .map { details -> details?.oneTimePurchaseOfferDetails?.formattedPrice }
+      .stateIn(scope, SharingStarted.WhileSubscribed(5000), null)
+
+  private var onPurchasedListener: ((Boolean) -> Unit)? = null
+
+  override fun launchBillingFlow(activity: Activity) {
+    val details = _productDetails.value ?: return
+    val productDetailsParamsList =
+      listOf(BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(details).build())
+    val billingFlowParams = BillingFlowParams.newBuilder().setProductDetailsParamsList(productDetailsParamsList).build()
+
+    billingClient.launchBillingFlow(activity, billingFlowParams)
+  }
+
+  override fun startConnection(setPurchased: (Boolean) -> Unit, billingDisconnected: () -> Unit) {
+    this.onPurchasedListener = setPurchased
+    if (billingClient.isReady) {
+      queryPurchases(setPurchased)
+      return
     }
-
-    private val scope = CoroutineScope(Dispatchers.Main)
-
-    private val _purchaseSuccessEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    override val purchaseSuccessEvent: SharedFlow<Unit> = _purchaseSuccessEvent.asSharedFlow()
-
-    private val billingClient : BillingClient = BillingClient.newBuilder(context)
-        .setListener(this)
-        .enablePendingPurchases(
-            PendingPurchasesParams.newBuilder()
-                .enableOneTimeProducts()
-                .build()
-        )
-        .build()
-
-    private val _productDetails = MutableStateFlow<ProductDetails?>(null)
-
-    override val removeAdsPrice: StateFlow<String?> = _productDetails.map { details ->
-        details?.oneTimePurchaseOfferDetails?.formattedPrice
-    }.stateIn(scope, SharingStarted.WhileSubscribed(5000), null)
-
-    private var onPurchasedListener: ((Boolean) -> Unit)? = null
-
-    override fun launchBillingFlow(activity : Activity) {
-        val details = _productDetails.value ?: return
-        val productDetailsParamsList = listOf(
-            BillingFlowParams.ProductDetailsParams.newBuilder()
-                .setProductDetails(details)
-                .build()
-        )
-        val billingFlowParams = BillingFlowParams.newBuilder()
-            .setProductDetailsParamsList(productDetailsParamsList)
-            .build()
-
-        billingClient.launchBillingFlow(activity, billingFlowParams)
-    }
-
-
-    override fun startConnection(setPurchased: (Boolean) -> Unit, billingDisconnected : () -> Unit) {
-        this.onPurchasedListener = setPurchased
-        if (billingClient.isReady) {
+    billingClient.startConnection(
+      object : BillingClientStateListener {
+        override fun onBillingSetupFinished(billingResult: BillingResult) {
+          if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
             queryPurchases(setPurchased)
-            return
+            queryProductDetails()
+          }
         }
-        billingClient.startConnection(object : BillingClientStateListener {
-            override fun onBillingSetupFinished(billingResult: BillingResult) {
-                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK){
-                    queryPurchases(setPurchased)
-                    queryProductDetails()
-                }
-            }
 
-            override fun onBillingServiceDisconnected() {
-                billingDisconnected()
-            }
-
-        })
-    }
-
-    private fun queryProductDetails(){
-        val productList = listOf(
-            QueryProductDetailsParams.Product.newBuilder()
-                .setProductId(REMOVE_ADS_PRODUCT_ID)
-                .setProductType(BillingClient.ProductType.INAPP)
-                .build()
-        )
-        val params = QueryProductDetailsParams.newBuilder()
-            .setProductList(productList)
-            .build()
-        billingClient.queryProductDetailsAsync(params) { billingResult, queryProductDetailsResult ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK){
-                val list = queryProductDetailsResult.productDetailsList.toList()
-                _productDetails.value = list.firstOrNull()
-            }
+        override fun onBillingServiceDisconnected() {
+          billingDisconnected()
         }
-    }
+      }
+    )
+  }
 
-    fun queryPurchases(setPurchased : (Boolean) -> Unit){
-        if (!billingClient.isReady) return
-        val params = QueryPurchasesParams.newBuilder()
-            .setProductType(BillingClient.ProductType.INAPP)
-            .build()
-        billingClient.queryPurchasesAsync(params){ billingResult, purchases ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK){
-                val hasRemoveAds = purchases.any { item ->
-                    item.products.contains(REMOVE_ADS_PRODUCT_ID) &&
-                            item.purchaseState == Purchase.PurchaseState.PURCHASED
-                }
-                setPurchased(hasRemoveAds)
-            }
-            purchases.filter {it.purchaseState == Purchase.PurchaseState.PURCHASED && !it.isAcknowledged }
-                .forEach {acknowledgePurchase(it)}
+  private fun queryProductDetails() {
+    val productList =
+      listOf(
+        QueryProductDetailsParams.Product.newBuilder()
+          .setProductId(REMOVE_ADS_PRODUCT_ID)
+          .setProductType(BillingClient.ProductType.INAPP)
+          .build()
+      )
+    val params = QueryProductDetailsParams.newBuilder().setProductList(productList).build()
+    billingClient.queryProductDetailsAsync(params) { billingResult, queryProductDetailsResult ->
+      if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+        val list = queryProductDetailsResult.productDetailsList.toList()
+        _productDetails.value = list.firstOrNull()
+      }
+    }
+  }
+
+  fun queryPurchases(setPurchased: (Boolean) -> Unit) {
+    if (!billingClient.isReady) return
+    val params = QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.INAPP).build()
+    billingClient.queryPurchasesAsync(params) { billingResult, purchases ->
+      if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+        val hasRemoveAds = purchases.any { item ->
+          item.products.contains(REMOVE_ADS_PRODUCT_ID) && item.purchaseState == Purchase.PurchaseState.PURCHASED
         }
+        setPurchased(hasRemoveAds)
+      }
+      purchases
+        .filter { it.purchaseState == Purchase.PurchaseState.PURCHASED && !it.isAcknowledged }
+        .forEach { acknowledgePurchase(it) }
     }
+  }
 
-    private fun acknowledgePurchase(purchase : Purchase){
-        val params = AcknowledgePurchaseParams.newBuilder()
-            .setPurchaseToken(purchase.purchaseToken)
-            .build()
-        billingClient.acknowledgePurchase(params){ billingResult ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                onPurchasedListener?.invoke(true)
-                _purchaseSuccessEvent.tryEmit(Unit)
-            }
+  private fun acknowledgePurchase(purchase: Purchase) {
+    val params = AcknowledgePurchaseParams.newBuilder().setPurchaseToken(purchase.purchaseToken).build()
+    billingClient.acknowledgePurchase(params) { billingResult ->
+      if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+        onPurchasedListener?.invoke(true)
+        _purchaseSuccessEvent.tryEmit(Unit)
+      }
+    }
+  }
+
+  override fun onPurchasesUpdated(billingResult: BillingResult, purchases: List<Purchase?>?) {
+    if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
+      for (purchase in purchases) {
+        if (purchase?.purchaseState == Purchase.PurchaseState.PURCHASED) {
+          if (!purchase.isAcknowledged) {
+            acknowledgePurchase(purchase)
+          } else {
+            onPurchasedListener?.invoke(true)
+          }
         }
+      }
     }
-
-    override fun onPurchasesUpdated(
-        billingResult: BillingResult,
-        purchases: List<Purchase?>?
-    ) {
-        if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null){
-            for (purchase in purchases) {
-                if (purchase?.purchaseState == Purchase.PurchaseState.PURCHASED) {
-                    if (!purchase.isAcknowledged) {
-                        acknowledgePurchase(purchase)
-                    } else {
-                        onPurchasedListener?.invoke(true)
-                    }
-                }
-            }
-        }
-    }
-
+  }
 }

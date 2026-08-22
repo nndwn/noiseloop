@@ -27,95 +27,55 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.nndwn.whitenoise.BuildConfig
 import com.nndwn.whitenoise.R
-import com.nndwn.whitenoise.ui.theme.dimens
 import com.nndwn.whitenoise.ui.LocalIsPremium
+import com.nndwn.whitenoise.ui.theme.dimens
 
-enum class MenuOptions(
-    @param:StringRes val label : Int,
-    @param:DrawableRes val iconRes : Int
-) {
-    REMOVE_ADS(
-        label = R.string.menu_remove_ad,
-        iconRes = R.drawable.ic_coffee2
-    ),
-    TIMER(
-        label = R.string.btn_text_timer,
-        iconRes = R.drawable.ic_timer
-    ),
-    RATE_APP(
-        label = R.string.menu_review,
-        iconRes = R.drawable.ic_star
-    ),
-    REPORT_ISSUE(
-        label = R.string.menu_report_issue,
-        iconRes = R.drawable.ic_bug
-    ),
-    DEBUG(
-        label = R.string.menu_debug,
-        iconRes = R.drawable.ic_bug
-    )
+enum class MenuOptions(@param:StringRes val label: Int, @param:DrawableRes val iconRes: Int) {
+  REMOVE_ADS(label = R.string.menu_remove_ad, iconRes = R.drawable.ic_coffe2),
+  TIMER(label = R.string.btn_text_timer, iconRes = R.drawable.ic_timer),
+  RATE_APP(label = R.string.menu_review, iconRes = R.drawable.ic_star),
+  REPORT_ISSUE(label = R.string.menu_report_issue, iconRes = R.drawable.ic_bug),
+  DEBUG(label = R.string.menu_debug, iconRes = R.drawable.ic_bug),
 }
 
 @Composable
-fun MenuOptions(
-    modifier: Modifier = Modifier,
-    onMenuSelected: (MenuOptions) -> Unit = {}
-){
-    val isPremium = LocalIsPremium.current
-    Column(
-        modifier = modifier.fillMaxHeight(),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Spacer(modifier = Modifier.height(10.dp))
-        //todo : add condition flavor
-        MenuOptions.entries
-            .filter { 
-                when (it) {
-                    MenuOptions.DEBUG -> BuildConfig.DEBUG
-                    MenuOptions.REMOVE_ADS -> !isPremium
-                    else -> true
-                }
-            }
-            .forEach { menu ->
-            ItemOptions(
-                menu = menu,
-                onClick = { onMenuSelected(menu) }
-            )
-
+fun MenuOptions(modifier: Modifier = Modifier, onMenuSelected: (MenuOptions) -> Unit = {}) {
+  val isPremium = LocalIsPremium.current
+  Column(modifier = modifier.fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Spacer(modifier = Modifier.height(10.dp))
+    // todo : add condition flavor
+    MenuOptions.entries
+      .filter {
+        when (it) {
+          MenuOptions.DEBUG -> BuildConfig.DEBUG
+          MenuOptions.REMOVE_ADS -> !isPremium
+          else -> true
         }
-    }
-
+      }
+      .forEach { menu -> ItemOptions(menu = menu, onClick = { onMenuSelected(menu) }) }
+  }
 }
 
-
 @Composable
-private fun ItemOptions(
-    modifier : Modifier = Modifier,
-    menu : MenuOptions,
-    onClick : () -> Unit = {}
-){
-    Row (
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(),
-                onClick = onClick
-            )
-            .padding(vertical = MaterialTheme.dimens.small, horizontal = MaterialTheme.dimens.medium)
-        ,
-       verticalAlignment = Alignment.CenterVertically
-    ){
-        Icon(
-            painter = painterResource(menu.iconRes),
-            contentDescription = "icon ${stringResource(menu.label)}",
-            modifier = Modifier.size(MaterialTheme.dimens.iconMedium)
+private fun ItemOptions(modifier: Modifier = Modifier, menu: MenuOptions, onClick: () -> Unit = {}) {
+  Row(
+    modifier =
+      modifier
+        .fillMaxWidth()
+        .clickable(
+          interactionSource = remember { MutableInteractionSource() },
+          indication = ripple(),
+          onClick = onClick,
         )
-        Spacer(modifier = Modifier.width(MaterialTheme.dimens.medium))
-        Text(
-            text = stringResource(menu.label),
-            style = MaterialTheme.typography.titleMedium
-        )
-
-    }
+        .padding(vertical = MaterialTheme.dimens.small, horizontal = MaterialTheme.dimens.medium),
+    verticalAlignment = Alignment.CenterVertically,
+  ) {
+    Icon(
+      painter = painterResource(menu.iconRes),
+      contentDescription = "icon ${stringResource(menu.label)}",
+      modifier = Modifier.size(MaterialTheme.dimens.iconMedium),
+    )
+    Spacer(modifier = Modifier.width(MaterialTheme.dimens.medium))
+    Text(text = stringResource(menu.label), style = MaterialTheme.typography.titleMedium)
+  }
 }
